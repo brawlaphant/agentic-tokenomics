@@ -1,0 +1,14 @@
+{
+  "kpi": {
+    "mechanism_id": "m010",
+    "scope": "v0_advisory",
+    "as_of": "2026-02-04T12:00:00Z",
+    "signals_emitted": 12,
+    "subjects_touched": 6,
+    "evidence_coverage_rate": 0.5,
+    "median_event_latency_hours": 36.0
+  },
+  "score": {
+    "reputation_score_0_1": 0.5488
+  }
+}
