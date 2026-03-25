@@ -1,5 +1,18 @@
 # SDK v0.54 Migration Implementation Guide
 
+> **STATUS: DRAFT — Pending SDK v0.54 Release**
+>
+> This guide is based on the Cosmos SDK v0.54 pre-release specification and x/poa module design documents as of March 2026. Key caveats:
+>
+> - **SDK v0.54 is not yet released.** Import paths, interface names, and module behavior may change before final release. All Go code blocks in this document are marked as `SPECULATIVE` where they reference unreleased APIs.
+> - **x/poa is under active development** by Cosmos Labs. The module API documented here is based on PR #32's analysis and may diverge from the shipped version.
+> - **Review checklist at bottom** (§ What Will Need Updating) lists every section that must be re-verified against the actual v0.54 release.
+>
+> Code blocks are marked with one of three labels:
+> - `// CURRENT (v0.53)` — Code that works today against the existing Regen Ledger
+> - `// TARGET (v0.54)` — Speculative code based on pre-release v0.54 design; verify before use
+> - `// ARCHITECTURE` — Structural patterns that are SDK-version-independent
+
 ## Overview
 
 **Purpose**: Provide concrete code migration patterns for Regen Ledger engineers, turning PR #35's checklist into implementation-ready guidance.
@@ -55,7 +68,7 @@
 The Phase 3 spec (3.1-smart-contract-specs.md) and M014 assume a custom `x/authority` module wrapping `x/staking`:
 
 ```go
-// phase-2/2.6 assumed architecture (v0.53)
+// CURRENT (v0.53) — Phase 2.6 assumed architecture
 // x/authority wraps x/staking to manage a curated validator set
 
 package authority
@@ -134,6 +147,7 @@ SDK v0.54 ships with native `x/poa` from Cosmos Labs. x/poa is a direct replacem
 #### Refactored Code Pattern
 
 ```go
+// TARGET (v0.54) — Verify import paths against actual release
 // Before: custom keeper managing full validator set
 type AuthorityKeeper struct {
     stakingKeeper  stakingkeeper.Keeper
@@ -171,6 +185,7 @@ type App struct {
 Update `app/app.go` for SDK v0.54 with x/poa replacing x/staking:
 
 ```go
+// TARGET (v0.54) — Verify import paths against actual release
 // app/app.go — SDK v0.54 module registration changes
 
 import (
@@ -260,6 +275,7 @@ func NewApp(/* ... */) *App {
 Migrate genesis state from x/staking to x/poa format during the upgrade handler:
 
 ```go
+// TARGET (v0.54) — Genesis migration handler; verify x/poa state format against release
 // app/upgrades/v054/upgrade.go
 
 package v054
@@ -1270,7 +1286,27 @@ This guide translates PR #35's three-phase migration checklist into implementati
 5. **AGENT-004 monitoring** bridges the gap between on-chain x/poa state and the off-chain performance tracking needed for the full M014 validator governance model.
 
 ### Related Documents
-- [Economic Reboot Mechanism Specifications](../phase-2/2.6-economic-reboot-mechanisms.md) -- M012, M013, M014, M015 protocol specs
-- [Smart Contract Development Specifications](../phase-3/3.1-smart-contract-specs.md) -- Contract architecture and protobuf definitions
-- [Tokenomic Mechanisms Inventory](../phase-1/1.2-tokenomic-mechanisms.md) -- Full mechanism catalog with PoA status annotations
-- [Token Economics Synthesis](economics/token-economics-synthesis.md) -- Economic model and parameter analysis
+- [Economic Reboot Mechanism Specifications](../phase-2/2.6-economic-reboot-mechanisms.md) — M012, M013, M014, M015 protocol specs
+- [Smart Contract Development Specifications](../phase-3/3.1-smart-contract-specs.md) — Contract architecture and protobuf definitions
+- [Tokenomic Mechanisms Inventory](../phase-1/1.2-tokenomic-mechanisms.md) — Full mechanism catalog with PoA status annotations
+- [Token Economics Synthesis](economics/token-economics-synthesis.md) — Economic model and parameter analysis
+
+---
+
+## What Will Need Updating When SDK v0.54 Ships
+
+> **Action required**: When Cosmos SDK v0.54 reaches release candidate, an engineer must walk this checklist and verify each section against the actual release.
+
+| Section | What to Verify | Likely Change Risk |
+|---------|---------------|-------------------|
+| **Breaking Changes Inventory** (§2) | Confirm all 10 breaking changes still apply; check for additional ones in the v0.54 CHANGELOG | Medium — there will be late-breaking changes |
+| **x/poa import paths** (§3.2, §3.3) | Verify `github.com/cosmos/cosmos-sdk/x/poa` is the actual import path; may be `cosmossdk.io/x/poa` | High — module location may differ |
+| **Module registration** (§3.3) | Verify `appmodule.AppModule` interface matches actual shipped interface | High — the interface changed between SDK v0.50 and v0.52; may change again |
+| **x/poa MsgSetPower** (§3.2) | Verify the message name and fields; x/poa is pre-release | High — API not stable |
+| **Genesis migration handler** (§3.4) | Verify x/staking state structure matches v0.53 export format | Medium — may need field-level adjustments |
+| **CosmWasm wasmvm v2** (§4) | Verify contract compatibility; test recompilation against actual wasmvm v2 | Low — CosmWasm maintains backward compat |
+| **Test utilities** (§5) | Verify `testutil` package paths and function signatures | Medium — test utils change frequently |
+| **CLI commands** (§6) | Verify all `regen tx` and `regen query` commands still work | Low — CLI is relatively stable |
+| **IAVL migration tool** (§2) | Verify tool exists at `cosmossdk.io/store/v2` and document expected downtime | Medium — tool may have different CLI flags |
+
+**Recommended process**: When v0.54 RC1 drops, create a branch `test/sdk-v054-verification`, attempt to build regen-ledger against it, and update this document with findings. Track verification status per row.
