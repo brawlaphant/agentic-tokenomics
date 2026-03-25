@@ -3,9 +3,11 @@
 > Operationalizes PR #34 (Bioregional Validator Framework) into a concrete, scoreable rubric for the Regen Network authority validator set.
 
 **Status:** Draft
-**Spec dependency:** M014 (phase-2/2.6) -- Curated Authority Validator Set
-**PR origin:** Gregory's PR #34 -- Bioregional Validator Framework
+**Spec dependency:** M014 (phase-2/2.6) — Curated Authority Validator Set
+**PR origin:** Gregory's PR #34 — Bioregional Validator Framework
 **Last updated:** 2026-03-24
+
+> **Architecture note**: This rubric operationalizes M014's validator selection process. M014 defines the _mechanism_ (set size, lifecycle states, compensation model); this rubric defines the _scoring framework_ used to evaluate applicants. The rubric's parameters (set size 15-21, category minimums 5/5/5, term length 12 months) are drawn from M014 §Validator Composition and §Governance Parameters. If M014 parameters change via governance, this rubric must be updated to match.
 
 ---
 
@@ -354,14 +356,16 @@ Same rubric structure as IB-7. Particular attention to independence from credit 
 
 ## Minimum Thresholds
 
-All applicants must meet the following minimum thresholds to be eligible for a validator seat:
+All applicants must meet the following minimum thresholds to be eligible for a validator seat.
 
-### Overall Threshold
+> **Dual-gate eligibility**: Applicants must pass ALL THREE gates below. These are independent — passing one does not waive the others. An applicant scoring 750/1000 overall but 40/200 on a single criterion is **not eligible** (fails Gate 2). An applicant scoring 650/1000 with all per-criterion minimums met but 45/100 on Conflict of Interest is **not eligible** (fails Gate 3).
+
+### Gate 1: Overall Threshold
 
 - **Minimum total score: 600/1000.**
 - Applicants scoring below 600 are not eligible regardless of category composition needs.
 
-### Per-Criterion Minimums
+### Gate 2: Per-Criterion Minimums
 
 No single criterion may fall below **25% of its maximum point value**:
 
@@ -373,7 +377,7 @@ No single criterion may fall below **25% of its maximum point value**:
 
 An applicant with a total score of 750 but a Technical Infrastructure score of 40/200 is **not eligible** because 40 < 50 (25% of 200).
 
-### Conflict of Interest Hard Floor
+### Gate 3: Conflict of Interest Hard Floor
 
 - **Conflict of Interest Disclosure must score at least 50/100.**
 - Any score below 50 on the Conflict of Interest criterion is an automatic disqualification, regardless of overall score.
