@@ -73,7 +73,9 @@ This channel receives automated posts triggered by AGENT-002 workflows. No commu
 #### Message Type 1: New Proposal Detected (WF-GA-01)
 
 **Trigger**: `ProposalSubmitted` event on Regen Ledger
-**SLA**: Post within 2 hours of proposal submission (per WF-GA-01)
+**Scheduled message SLA**: Post within 2 hours of proposal submission (per WF-GA-01 response time target)
+
+> **SLA note**: Scheduled/automated messages (this section) have a 2-hour SLA measured from blockchain event to Discord post. Interactive command responses (§ `#proposal-discussion`) have a separate <5s (cached) / <30s (fresh) SLA measured from user command to bot reply. These are different guarantees with different failure modes.
 
 ```json
 {
@@ -2399,9 +2401,7 @@ Based on 61+ historical proposals on Regen:
 - **Lowest turnout (passed)**: 34.1% (Proposal #47)
 - **Proposals that failed quorum**: 3 out of 61 (4.9%)
 
-The October 2025 governance audit noted that 65% of voting power is
-concentrated among top validators, and the average turnout of 25%
-(measured at that time) has since improved slightly.
+The October 2025 governance findings (documented in [PR #33 — Community Background](../docs/community-background.md)) noted that 65% of voting power was concentrated among top validators, and the average turnout of 25% (measured at that time) has since improved slightly.
 
 Note: A significant portion of votes typically arrive in the final 48
 hours. Historical data shows 40-60% of total votes are cast in the
