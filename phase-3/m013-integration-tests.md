@@ -556,6 +556,14 @@ expected:
   note: >
     Test must validate that batch creation succeeds only after fee is collected.
     If fee collection fails, batch creation must also fail (atomic).
+  architecture_note: >
+    PR #36 specifies two integration architectures (Option A: native hook,
+    Option B: wrapper contract). This test case is architecture-agnostic —
+    the expected fee amount and atomicity guarantee apply to both options.
+    However, gas costs differ: Option A incurs lower gas (~50K less per tx)
+    due to native execution. Performance benchmarks (PB-001 through PB-003)
+    should be run separately for each option when the architecture decision
+    is finalized.
 ```
 
 ### Fee Collection via Marketplace MsgBuyDirect
