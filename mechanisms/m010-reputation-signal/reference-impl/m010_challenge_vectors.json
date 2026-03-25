@@ -288,7 +288,7 @@
           "expected_escalated": false,
           "expected_score": {
             "reputation_score_0_1": 0.0,
-            "reason": "Still within 14-day resolution deadline; no escalation"
+            "reason": "Day 10 of 14: still within resolution deadline (challenge filed 2026-03-05, deadline 2026-03-19). No escalation."
           }
         },
         {
@@ -300,7 +300,7 @@
           "expected_escalated": true,
           "expected_score": {
             "reputation_score_0_1": 0.0,
-            "reason": "Resolution deadline exceeded; auto-escalated to governance. Score still paused."
+            "reason": "Day 15 of 14: resolution deadline exceeded (challenge filed 2026-03-05, deadline was 2026-03-19). Auto-escalated to governance per SPEC.md §6.1. Score still paused."
           }
         },
         {
