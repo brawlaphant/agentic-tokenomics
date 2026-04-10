@@ -3,16 +3,16 @@
 **Status:** Draft for WG Review
 **Date:** 2026-03-24
 **Author:** Tokenomics Working Group (AGENT-assisted analysis)
-**Scope:** All 31 open questions from Phase 2 module specifications
+**Scope:** All 33 open questions from Phase 2 module specifications
 
 ---
 
 ## Overview
 
-This document resolves all 31 open questions identified during Phase 2 of the Agentic Tokenomics design process. Each question receives structured analysis, a concrete recommendation, rationale, and a status designation:
+This document resolves all 33 open questions identified during Phase 2 of the Agentic Tokenomics design process. Each question receives structured analysis, a concrete recommendation, rationale, and a status designation:
 
-- **RESOLVED** — The recommendation is ready for implementation without further governance action. (22 questions)
-- **NEEDS_GOVERNANCE** — The recommendation requires a formal governance proposal or WG vote before implementation. (9 questions)
+- **RESOLVED** — The recommendation is ready for implementation without further governance action. (26 questions)
+- **NEEDS_GOVERNANCE** — The recommendation requires a formal governance proposal or WG vote before implementation. (7 questions)
 
 The goal is to eliminate ambiguity and provide implementers with clear parameter choices, while flagging politically sensitive or high-impact decisions for community input.
 
@@ -810,7 +810,7 @@ The messaging around this transition is critical. Existing validators should not
 | OQ-GOV-POA-2 | GOV-POA | Parallel PoS/PoA duration | RESOLVED |
 | OQ-GOV-POA-3 | GOV-POA | Existing validator treatment | RESOLVED |
 
-**Totals:** 22 RESOLVED, 9 NEEDS_GOVERNANCE
+**Totals:** 26 RESOLVED, 7 NEEDS_GOVERNANCE
 
 ---
 
@@ -835,7 +835,7 @@ Several PRs in this repository assume specific OQ resolutions as baselines. If t
 
 ## Next Steps for the Working Group
 
-1. **Governance Proposals (9 items):** The nine NEEDS_GOVERNANCE items should be packaged into governance proposals for community deliberation. We recommend grouping them into three proposals:
+1. **Governance Proposals (7 items):** The seven NEEDS_GOVERNANCE items should be packaged into governance proposals for community deliberation. We recommend grouping them into three proposals:
    - **Economic Parameters Proposal:** OQ-M012-1 (hard cap), OQ-M013-1 (fee distribution model), OQ-M013-3 (fee denomination), OQ-M013-5 (burn pool size)
    - **Validator and Governance Structure Proposal:** OQ-M014-3 (initial trusted partners), OQ-GOV-POA-1 (per-process weights)
    - **Community Pool and Operations Proposal:** OQ-M015-3 (Community Pool split)
