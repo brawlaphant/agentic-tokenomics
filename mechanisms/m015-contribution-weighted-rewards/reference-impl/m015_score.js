@@ -167,17 +167,14 @@ export function computeDistribution({ activity_pool_amount, participants }) {
 // ---------------------------------------------------------------------------
 // Self-test harness (runs when executed directly)
 // ---------------------------------------------------------------------------
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function selfTest() {
-  const inputPath = join(__dirname, "test_vectors", "vector_v0_sample.input.json");
-  const expectedPath = join(__dirname, "test_vectors", "vector_v0_sample.expected.json");
-
+function runVector(inputPath, expectedPath) {
   const input = JSON.parse(readFileSync(inputPath, "utf8"));
   const expected = JSON.parse(readFileSync(expectedPath, "utf8"));
 
@@ -189,17 +186,15 @@ function selfTest() {
     max_stability_share: input.max_stability_share,
   });
 
-  console.log(`Stability allocation: ${stability_allocation} uregen`);
-  console.log(`Activity pool:        ${activity_pool} uregen`);
+  console.log(`  Stability allocation: ${stability_allocation} uregen`);
+  console.log(`  Activity pool:        ${activity_pool} uregen`);
 
   // Check stability allocation
   if (stability_allocation !== expected.stability_allocation_uregen) {
-    console.error(`FAIL: stability_allocation expected ${expected.stability_allocation_uregen}, got ${stability_allocation}`);
-    process.exit(1);
+    throw new Error(`stability_allocation expected ${expected.stability_allocation_uregen}, got ${stability_allocation}`);
   }
   if (activity_pool !== expected.activity_pool_uregen) {
-    console.error(`FAIL: activity_pool expected ${expected.activity_pool_uregen}, got ${activity_pool}`);
-    process.exit(1);
+    throw new Error(`activity_pool expected ${expected.activity_pool_uregen}, got ${activity_pool}`);
   }
 
   // 2. Compute activity scores for each participant
@@ -207,19 +202,17 @@ function selfTest() {
   for (const p of input.participants) {
     const result = computeActivityScore({ activities: p.activities });
     scoredParticipants.push({ address: p.address, ...result });
-    console.log(`Score ${p.address}: ${result.total_score}`);
+    console.log(`  Score ${p.address}: ${result.total_score}`);
   }
 
   // Check individual scores
   for (const exp of expected.participant_scores) {
     const actual = scoredParticipants.find(p => p.address === exp.address);
     if (!actual) {
-      console.error(`FAIL: participant ${exp.address} not found`);
-      process.exit(1);
+      throw new Error(`participant ${exp.address} not found`);
     }
     if (Math.abs(actual.total_score - exp.total_score) > 0.001) {
-      console.error(`FAIL: ${exp.address} score expected ${exp.total_score}, got ${actual.total_score}`);
-      process.exit(1);
+      throw new Error(`${exp.address} score expected ${exp.total_score}, got ${actual.total_score}`);
     }
   }
 
@@ -229,45 +222,69 @@ function selfTest() {
     participants: scoredParticipants,
   });
 
-  console.log("\nDistribution:");
+  console.log("  Distribution:");
   for (const d of dist) {
-    console.log(`  ${d.address}: ${d.reward} uregen (${(d.share * 100).toFixed(2)}%)`);
+    console.log(`    ${d.address}: ${d.reward} uregen (${(d.share * 100).toFixed(2)}%)`);
   }
 
-  // Check distribution totals
+  // Check distribution totals (skip for zero-activity: all rewards 0, pool is unallocated)
   const totalDistributed = dist.reduce((s, d) => s + d.reward, 0);
-  if (totalDistributed !== activity_pool) {
-    console.error(`FAIL: total distributed ${totalDistributed} != activity_pool ${activity_pool}`);
-    process.exit(1);
+  const allZero = scoredParticipants.every(p => p.total_score === 0);
+  if (!allZero && totalDistributed !== activity_pool) {
+    throw new Error(`total distributed ${totalDistributed} != activity_pool ${activity_pool}`);
   }
 
   // Check individual rewards
   for (const exp of expected.distribution) {
     const actual = dist.find(d => d.address === exp.address);
     if (!actual) {
-      console.error(`FAIL: distribution for ${exp.address} not found`);
-      process.exit(1);
+      throw new Error(`distribution for ${exp.address} not found`);
     }
     if (Math.abs(actual.reward - exp.reward) > 1) {
-      console.error(`FAIL: ${exp.address} reward expected ${exp.reward}, got ${actual.reward}`);
-      process.exit(1);
+      throw new Error(`${exp.address} reward expected ${exp.reward}, got ${actual.reward}`);
     }
   }
 
   // Check security invariants
   const totalPayout = stability_allocation + totalDistributed;
   if (totalPayout > input.community_pool_inflow_uregen) {
-    console.error(`FAIL: total payout ${totalPayout} > inflow ${input.community_pool_inflow_uregen}`);
-    process.exit(1);
+    throw new Error(`total payout ${totalPayout} > inflow ${input.community_pool_inflow_uregen}`);
   }
 
   const stabilityCap = input.community_pool_inflow_uregen * input.max_stability_share;
   if (stability_allocation > stabilityCap) {
-    console.error(`FAIL: stability_allocation ${stability_allocation} > cap ${stabilityCap}`);
-    process.exit(1);
+    throw new Error(`stability_allocation ${stability_allocation} > cap ${stabilityCap}`);
+  }
+}
+
+function selfTest() {
+  const vectorDir = join(__dirname, "test_vectors");
+  const inputFiles = readdirSync(vectorDir)
+    .filter(f => f.endsWith(".input.json"))
+    .sort();
+
+  let passed = 0;
+  let failed = 0;
+
+  for (const inputFile of inputFiles) {
+    const baseName = inputFile.replace(".input.json", "");
+    const expectedFile = baseName + ".expected.json";
+    const inputPath = join(vectorDir, inputFile);
+    const expectedPath = join(vectorDir, expectedFile);
+
+    console.log(`--- ${baseName} ---`);
+    try {
+      runVector(inputPath, expectedPath);
+      passed++;
+      console.log("  PASS\n");
+    } catch (err) {
+      failed++;
+      console.error(`  FAIL: ${err.message}\n`);
+    }
   }
 
-  console.log("\nm015_score self-test: PASS");
+  console.log(`m015_score self-test: ${passed} passed, ${failed} failed`);
+  if (failed > 0) process.exit(1);
 }
 
 // Run self-test if executed directly

@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "m015 replay dataset",
+  "type": "object",
+  "required": [
+    "community_pool_inflow_uregen",
+    "periods_per_year",
+    "max_stability_share",
+    "stability_commitments",
+    "participants"
+  ],
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the dataset"
+    },
+    "epoch": {
+      "type": "string",
+      "description": "ISO week identifier (e.g. 2026-W07)"
+    },
+    "community_pool_inflow_uregen": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Community Pool inflow for this period in uregen"
+    },
+    "periods_per_year": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of distribution periods per year (default 52 for weekly epochs)"
+    },
+    "max_stability_share": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Maximum fraction of inflow allocated to stability tier (default 0.30)"
+    },
+    "stability_commitments": {
+      "type": "array",
+      "description": "Active stability tier commitments for the period",
+      "items": {
+        "type": "object",
+        "required": ["holder_address", "committed_amount_uregen", "lock_period_months"],
+        "properties": {
+          "holder_address": {
+            "type": "string",
+            "description": "Bech32 address of the commitment holder"
+          },
+          "committed_amount_uregen": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Amount of uregen locked in stability commitment"
+          },
+          "lock_period_months": {
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 24,
+            "description": "Lock period in months (min 6, max 24)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["uncommitted", "committed", "matured", "early_exit"],
+            "description": "Lifecycle state of the commitment"
+          },
+          "committed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601 timestamp when commitment was made"
+          },
+          "matured_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO-8601 timestamp when commitment matured (null if not matured)"
+          },
+          "exited_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO-8601 timestamp of early exit (null if not exited)"
+          },
+          "accrued_rewards_uregen": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total rewards accrued to date in uregen"
+          },
+          "forfeited_rewards_uregen": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Rewards forfeited due to early exit (50% penalty)"
+          },
+          "annual_return_rate": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Annual return rate (default 0.06)"
+          }
+        }
+      }
+    },
+    "participants": {
+      "type": "array",
+      "description": "Participants with activity data for the period",
+      "items": {
+        "type": "object",
+        "required": ["address", "activities"],
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Bech32 address of the participant"
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable label for the participant"
+          },
+          "activities": {
+            "type": "object",
+            "required": [
+              "credit_purchase_value",
+              "credit_retirement_value",
+              "platform_facilitation_value",
+              "governance_votes_cast",
+              "proposals"
+            ],
+            "properties": {
+              "credit_purchase_value": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total credit purchase value in uregen for this period"
+              },
+              "credit_retirement_value": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total credit retirement value in uregen for this period"
+              },
+              "platform_facilitation_value": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total platform facilitation value in uregen for this period"
+              },
+              "governance_votes_cast": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of governance votes cast in this period"
+              },
+              "proposals": {
+                "type": "array",
+                "description": "Proposals submitted in this period",
+                "items": {
+                  "type": "object",
+                  "required": ["passed", "reached_quorum"],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Proposal identifier"
+                    },
+                    "passed": {
+                      "type": "boolean",
+                      "description": "Whether the proposal passed"
+                    },
+                    "reached_quorum": {
+                      "type": "boolean",
+                      "description": "Whether the proposal reached quorum"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "computed": {
+            "type": "object",
+            "description": "Pre-computed values for validation (optional, present in fixture files)",
+            "properties": {
+              "total_score": {
+                "type": "number",
+                "minimum": 0
+              },
+              "activity_reward_uregen": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "activity_share": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "stability_reward_uregen": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_reward_uregen": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Pre-computed summary for validation (optional, present in fixture files)",
+      "properties": {
+        "stability_allocation_uregen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activity_pool_uregen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_distributed_uregen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "participant_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stability_commitments_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stability_cap_utilization": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

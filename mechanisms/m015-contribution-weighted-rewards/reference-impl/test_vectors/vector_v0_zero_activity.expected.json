@@ -1,0 +1,41 @@
+{
+  "description": "Expected outputs for vector_v0_zero_activity — zero scores mean zero distribution. Activity pool equals full inflow. Computed by m015_score.js reference implementation.",
+  "stability_allocation_uregen": 0,
+  "activity_pool_uregen": 1000000000,
+  "total_distributed_uregen": 0,
+  "stability_utilization": 0,
+  "participant_count": 0,
+  "gini_coefficient": 0,
+  "top_earner_share": 0,
+  "participant_scores": [
+    {
+      "address": "regen1zero1example",
+      "total_score": 0
+    },
+    {
+      "address": "regen1zero2example",
+      "total_score": 0
+    },
+    {
+      "address": "regen1zero3example",
+      "total_score": 0
+    }
+  ],
+  "distribution": [
+    {
+      "address": "regen1zero1example",
+      "reward": 0,
+      "share": 0
+    },
+    {
+      "address": "regen1zero2example",
+      "reward": 0,
+      "share": 0
+    },
+    {
+      "address": "regen1zero3example",
+      "reward": 0,
+      "share": 0
+    }
+  ]
+}

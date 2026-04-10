@@ -1,0 +1,40 @@
+{
+  "description": "Stability obligations exceed 30% cap — demonstrates cap enforcement. 150B uregen committed at 6% annual = 173M/period, but cap is 30% of 500M = 150M.",
+  "community_pool_inflow_uregen": 500000000,
+  "periods_per_year": 52,
+  "max_stability_share": 0.30,
+  "stability_commitments": [
+    {
+      "holder_address": "regen1whale0example",
+      "committed_amount_uregen": 150000000000,
+      "lock_period_months": 24,
+      "status": "committed"
+    }
+  ],
+  "participants": [
+    {
+      "address": "regen1whale0example",
+      "label": "large holder with modest activity",
+      "activities": {
+        "credit_purchase_value": 40000000,
+        "credit_retirement_value": 10000000,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 2,
+        "proposals": []
+      }
+    },
+    {
+      "address": "regen1small0example",
+      "label": "small active participant",
+      "activities": {
+        "credit_purchase_value": 15000000,
+        "credit_retirement_value": 5000000,
+        "platform_facilitation_value": 10000000,
+        "governance_votes_cast": 4,
+        "proposals": [
+          { "passed": true, "reached_quorum": true }
+        ]
+      }
+    }
+  ]
+}

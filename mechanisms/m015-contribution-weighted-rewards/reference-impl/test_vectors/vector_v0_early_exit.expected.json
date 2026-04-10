@@ -1,0 +1,41 @@
+{
+  "description": "Expected outputs for vector_v0_early_exit — stability allocation includes all commitments (early exit penalty is metadata, not allocation reduction). Computed by m015_score.js reference implementation.",
+  "stability_allocation_uregen": 1961538,
+  "activity_pool_uregen": 1998038462,
+  "total_distributed_uregen": 2000000000,
+  "stability_utilization": 0.003269,
+  "participant_count": 3,
+  "gini_coefficient": 0.347222,
+  "top_earner_share": 0.625,
+  "participant_scores": [
+    {
+      "address": "regen1staker1example",
+      "total_score": 90000000.6
+    },
+    {
+      "address": "regen1staker2example",
+      "total_score": 39000000.2
+    },
+    {
+      "address": "regen1staker3example",
+      "total_score": 15000001.15
+    }
+  ],
+  "distribution": [
+    {
+      "address": "regen1staker1example",
+      "reward": 1248774031,
+      "share": 0.625
+    },
+    {
+      "address": "regen1staker2example",
+      "reward": 541135412,
+      "share": 0.270833
+    },
+    {
+      "address": "regen1staker3example",
+      "reward": 208129019,
+      "share": 0.104167
+    }
+  ]
+}

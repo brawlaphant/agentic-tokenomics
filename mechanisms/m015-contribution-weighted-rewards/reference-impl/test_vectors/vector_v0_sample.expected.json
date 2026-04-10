@@ -2,6 +2,11 @@
   "description": "Expected outputs for vector_v0_sample — computed by m015_score.js reference implementation",
   "stability_allocation_uregen": 576923,
   "activity_pool_uregen": 999423077,
+  "total_distributed_uregen": 1000000000,
+  "stability_utilization": 0.001923,
+  "participant_count": 4,
+  "gini_coefficient": 0.491611,
+  "top_earner_share": 0.604027,
   "participant_scores": [
     {
       "address": "regen1alice0example",

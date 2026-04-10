@@ -1,0 +1,68 @@
+{
+  "description": "Stability tier with early exit penalty — one commitment triggers 50% forfeiture. 3 participants with varying activity profiles.",
+  "community_pool_inflow_uregen": 2000000000,
+  "periods_per_year": 52,
+  "max_stability_share": 0.30,
+  "stability_commitments": [
+    {
+      "holder_address": "regen1staker1example",
+      "committed_amount_uregen": 1000000000,
+      "lock_period_months": 12,
+      "status": "committed"
+    },
+    {
+      "holder_address": "regen1staker2example",
+      "committed_amount_uregen": 500000000,
+      "lock_period_months": 6,
+      "status": "early_exit",
+      "accrued_rewards_uregen": 1442307,
+      "forfeited_rewards_uregen": 721153
+    },
+    {
+      "holder_address": "regen1staker3example",
+      "committed_amount_uregen": 200000000,
+      "lock_period_months": 24,
+      "status": "committed"
+    }
+  ],
+  "participants": [
+    {
+      "address": "regen1staker1example",
+      "label": "active buyer and retirer",
+      "activities": {
+        "credit_purchase_value": 200000000,
+        "credit_retirement_value": 100000000,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 5,
+        "proposals": [
+          { "passed": true, "reached_quorum": true }
+        ]
+      }
+    },
+    {
+      "address": "regen1staker2example",
+      "label": "platform operator with early exit",
+      "activities": {
+        "credit_purchase_value": 50000000,
+        "credit_retirement_value": 0,
+        "platform_facilitation_value": 120000000,
+        "governance_votes_cast": 2,
+        "proposals": []
+      }
+    },
+    {
+      "address": "regen1staker3example",
+      "label": "governance-focused participant",
+      "activities": {
+        "credit_purchase_value": 30000000,
+        "credit_retirement_value": 20000000,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 10,
+        "proposals": [
+          { "passed": true, "reached_quorum": true },
+          { "passed": false, "reached_quorum": true }
+        ]
+      }
+    }
+  ]
+}

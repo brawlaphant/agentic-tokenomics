@@ -1,0 +1,42 @@
+{
+  "description": "Edge case: all participants have zero activity. No stability commitments. All rewards should be 0.",
+  "community_pool_inflow_uregen": 1000000000,
+  "periods_per_year": 52,
+  "max_stability_share": 0.30,
+  "stability_commitments": [],
+  "participants": [
+    {
+      "address": "regen1zero1example",
+      "label": "inactive participant 1",
+      "activities": {
+        "credit_purchase_value": 0,
+        "credit_retirement_value": 0,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 0,
+        "proposals": []
+      }
+    },
+    {
+      "address": "regen1zero2example",
+      "label": "inactive participant 2",
+      "activities": {
+        "credit_purchase_value": 0,
+        "credit_retirement_value": 0,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 0,
+        "proposals": []
+      }
+    },
+    {
+      "address": "regen1zero3example",
+      "label": "inactive participant 3",
+      "activities": {
+        "credit_purchase_value": 0,
+        "credit_retirement_value": 0,
+        "platform_facilitation_value": 0,
+        "governance_votes_cast": 0,
+        "proposals": []
+      }
+    }
+  ]
+}

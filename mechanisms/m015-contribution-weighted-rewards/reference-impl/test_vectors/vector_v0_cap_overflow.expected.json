@@ -1,0 +1,32 @@
+{
+  "description": "Expected outputs for vector_v0_cap_overflow — raw stability allocation (173,076,923) exceeds 30% cap (150,000,000), so capped. Computed by m015_score.js reference implementation.",
+  "stability_allocation_uregen": 150000000,
+  "activity_pool_uregen": 350000000,
+  "total_distributed_uregen": 500000000,
+  "stability_utilization": 1,
+  "participant_count": 2,
+  "gini_coefficient": 0.152174,
+  "top_earner_share": 0.652174,
+  "participant_scores": [
+    {
+      "address": "regen1whale0example",
+      "total_score": 15000000.2
+    },
+    {
+      "address": "regen1small0example",
+      "total_score": 8000000.5
+    }
+  ],
+  "distribution": [
+    {
+      "address": "regen1whale0example",
+      "reward": 228260866,
+      "share": 0.652174
+    },
+    {
+      "address": "regen1small0example",
+      "reward": 121739134,
+      "share": 0.347826
+    }
+  ]
+}
