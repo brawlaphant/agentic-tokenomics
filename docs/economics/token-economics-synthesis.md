@@ -51,7 +51,7 @@ The $REGEN token is transitioning from an inflationary proof-of-stake model to a
 │          ▼                                                             │   │
 │    ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   │   │
 │    │ BURN POOL │   │ VALIDATOR │   │ COMMUNITY │   │   AGENT   │   │   │
-│    │   (30%)   │   │ FUND (40%)│   │ POOL (25%)│   │ INFRA (5%)│   │   │
+│    │   (28%)   │   │ FUND (25%)│   │ POOL (45%)│   │ INFRA (2%)│   │   │
 │    └───────────┘   └───────────┘   └───────────┘   └───────────┘   │   │
 │          │               │               │               │         │   │
 │          ▼               ▼               ▼               ▼         │   │
@@ -106,10 +106,10 @@ poa_transition:
 
 ### Fee Distribution
 
-- **30%** → Burn Pool (supply reduction)
-- **40%** → Validator Fund (fixed compensation)
-- **25%** → Community Pool (governance-directed)
-- **5%** → Agent Infrastructure Fund
+- **28%** → Burn Pool (supply reduction)
+- **25%** → Validator Fund (fixed compensation)
+- **45%** → Community Pool (governance-directed)
+- **2%** → Agent Infrastructure Fund
 
 ---
 
@@ -119,7 +119,7 @@ poa_transition:
 agent_infrastructure:
   funding_sources:
     - community_pool_grants
-    - registry_fee_allocation (5% of fees)
+    - registry_fee_allocation (2% of fees)
     - partner_contributions
 
   sustainability_target:
