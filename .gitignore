@@ -5,5 +5,18 @@ node_modules/
 # Local-only context (LLM analyses, workspace archives, private notes)
 .local/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Rust/CosmWasm build artifacts
+target/
+*.wasm
+
 # Claude Code
 CLAUDE.local.md

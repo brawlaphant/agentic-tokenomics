@@ -166,7 +166,7 @@ This project is developed in collaboration with Regen Network community. Contrib
 
 ## License
 
-[To be determined - suggest Apache 2.0 or MIT for code, CC-BY-SA for documentation]
+Code is licensed under [Apache License 2.0](LICENSE). Documentation is licensed under [CC BY-SA 4.0](LICENSE-CC-BY-SA). See [LICENSE.md](LICENSE.md) for details on which license applies to which files.
 
 ---
 

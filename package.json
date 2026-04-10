@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "verify": "node scripts/verify.mjs",
     "verify:m010": "node scripts/verify-m010-reference-impl.mjs",

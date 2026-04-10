@@ -85,6 +85,7 @@ npm install
 |--------|---------|---------|
 | `verify` | `node scripts/verify.mjs` | Validate required files, schemas, mechanism index |
 | `build:index` | `node scripts/build-mechanism-index.mjs` | Regenerate mechanism index in README.md |
+| `verify:m010:datasets` | `node scripts/verify-m010-datasets.mjs` | Validate M010 dataset fixtures |
 | `check:index` | `node scripts/build-mechanism-index.mjs --check` | Verify mechanism index is current (CI-safe) |
 
 ---
@@ -103,6 +104,15 @@ node mechanisms/m010-reputation-signal/reference-impl/m010_score.js
 # Test vectors are in reference-impl/test_vectors/
 # Input:    vector_v0_sample.input.json
 # Expected: vector_v0_sample.expected.json
+
+# Run M012 supply algorithm self-test
+node mechanisms/m012-fixed-cap-dynamic-supply/reference-impl/m012_supply.js
+
+# Run M013 fee routing self-test
+node mechanisms/m013-value-based-fee-routing/reference-impl/m013_fee.js
+
+# Run M015 contribution rewards self-test
+node mechanisms/m015-contribution-weighted-rewards/reference-impl/m015_score.js
 ```
 
 ### Adding New Test Vectors
