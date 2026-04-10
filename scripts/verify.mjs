@@ -65,59 +65,142 @@ function validateSchema(rel, schema) {
   }
 }
 
-// Core files
+// ---------------------------------------------------------------------------
+// Mechanism registry — each entry declares its required files and self-tests.
+// To add a new mechanism, append an entry here; no other changes needed.
+// ---------------------------------------------------------------------------
+const MECHANISMS = [
+  {
+    id: "m010",
+    dir: "mechanisms/m010-reputation-signal",
+    files: [
+      "SPEC.md",
+      "README.md",
+      "schemas/m010_kpi.schema.json",
+      "schemas/m010_signal.schema.json",
+      "schemas/m010_challenge.schema.json",
+      "datasets/schema.json",
+      "datasets/fixtures/v0_sample.json",
+      "datasets/fixtures/v0_challenge_sample.json",
+      "datasets/fixtures/v0_challenge_escalated_sample.json",
+      "datasets/fixtures/v0_challenge_edge_timing_sample.json",
+      "datasets/fixtures/v0_challenge_invalid_resolution_sample.json",
+      "datasets/fixtures/v0_challenge_invalid_outcome_sample.json",
+      "reference-impl/m010_kpi.js",
+      "reference-impl/m010_score.js",
+      "reference-impl/test_vectors/vector_v0_sample.input.json",
+      "reference-impl/test_vectors/vector_v0_sample.expected.json",
+      "reference-impl/test_vectors/vector_v0_challenge.expected.json",
+      "reference-impl/test_vectors/vector_v0_challenge_escalated.expected.json",
+      "reference-impl/test_vectors/vector_v0_challenge_edge_timing.expected.json",
+    ],
+    kpiSchema: "schemas/m010_kpi.schema.json",
+    selfTests: [],  // m010 uses dedicated verify scripts (below)
+  },
+  {
+    id: "m012",
+    dir: "mechanisms/m012-fixed-cap-dynamic-supply",
+    files: [
+      "SPEC.md",
+      "README.md",
+      "schemas/m012_kpi.schema.json",
+      "schemas/m012_supply_state.schema.json",
+      "schemas/m012_period_record.schema.json",
+      "datasets/fixtures/v0_sample.json",
+      "reference-impl/m012_supply.js",
+      "reference-impl/m012_kpi.js",
+    ],
+    kpiSchema: "schemas/m012_kpi.schema.json",
+    selfTests: ["reference-impl/m012_supply.js"],
+  },
+  {
+    id: "m013",
+    dir: "mechanisms/m013-value-based-fee-routing",
+    files: [
+      "SPEC.md",
+      "README.md",
+      "schemas/m013_kpi.schema.json",
+      "schemas/m013_fee_event.schema.json",
+      "schemas/m013_fee_config.schema.json",
+      "datasets/fixtures/v0_sample.json",
+    ],
+    kpiSchema: "schemas/m013_kpi.schema.json",
+    selfTests: ["reference-impl/m013_fee.js"],
+  },
+  {
+    id: "m014",
+    dir: "mechanisms/m014-authority-validator-governance",
+    files: [
+      "SPEC.md",
+      "README.md",
+      "schemas/m014_kpi.schema.json",
+      "schemas/m014_performance.schema.json",
+      "schemas/m014_validator.schema.json",
+      "datasets/fixtures/v0_sample.json",
+      "reference-impl/m014_kpi.js",
+      "reference-impl/m014_score.js",
+    ],
+    kpiSchema: "schemas/m014_kpi.schema.json",
+    selfTests: ["reference-impl/m014_score.js"],
+  },
+  {
+    id: "m015",
+    dir: "mechanisms/m015-contribution-weighted-rewards",
+    files: [
+      "SPEC.md",
+      "schemas/m015_kpi.schema.json",
+      "schemas/m015_activity_score.schema.json",
+      "schemas/m015_stability_commitment.schema.json",
+      "datasets/fixtures/v0_sample.json",
+      "reference-impl/m015_score.js",
+    ],
+    kpiSchema: "schemas/m015_kpi.schema.json",
+    selfTests: ["reference-impl/m015_score.js"],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Core repo files
+// ---------------------------------------------------------------------------
 requireFile("README.md");
-requireFile("mechanisms/m010-reputation-signal/SPEC.md");
-requireFile("mechanisms/m010-reputation-signal/README.md");
-requireFile("mechanisms/m010-reputation-signal/schemas/m010_kpi.schema.json");
-requireFile("mechanisms/m010-reputation-signal/schemas/m010_signal.schema.json");
-requireFile("mechanisms/m010-reputation-signal/schemas/m010_challenge.schema.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/schema.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_sample.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_challenge_sample.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_challenge_escalated_sample.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_challenge_edge_timing_sample.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_challenge_invalid_resolution_sample.json");
-requireFile("mechanisms/m010-reputation-signal/datasets/fixtures/v0_challenge_invalid_outcome_sample.json");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/m010_kpi.js");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/m010_score.js");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/test_vectors/vector_v0_sample.input.json");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/test_vectors/vector_v0_sample.expected.json");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/test_vectors/vector_v0_challenge.expected.json");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/test_vectors/vector_v0_challenge_escalated.expected.json");
-requireFile("mechanisms/m010-reputation-signal/reference-impl/test_vectors/vector_v0_challenge_edge_timing.expected.json");
 requireFile("scripts/verify-m010-reference-impl.mjs");
 requireFile("scripts/verify-m010-datasets.mjs");
 
-// m012 core files
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/SPEC.md");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/README.md");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/schemas/m012_kpi.schema.json");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/schemas/m012_supply_state.schema.json");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/schemas/m012_period_record.schema.json");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/datasets/fixtures/v0_sample.json");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/reference-impl/m012_supply.js");
-requireFile("mechanisms/m012-fixed-cap-dynamic-supply/reference-impl/m012_kpi.js");
+// ---------------------------------------------------------------------------
+// Per-mechanism: required files
+// ---------------------------------------------------------------------------
+for (const mech of MECHANISMS) {
+  for (const file of mech.files) {
+    requireFile(`${mech.dir}/${file}`);
+  }
+}
 
-// Mechanism index check
+// ---------------------------------------------------------------------------
+// Mechanism index check + m010-specific verification scripts
+// ---------------------------------------------------------------------------
 run("node", ["scripts/build-mechanism-index.mjs", "--check"]);
 run("node", ["scripts/verify-m010-reference-impl.mjs"]);
 run("node", ["scripts/verify-m010-datasets.mjs"]);
 
-// m013 core files
-requireFile("mechanisms/m013-value-based-fee-routing/SPEC.md");
-requireFile("mechanisms/m013-value-based-fee-routing/README.md");
-requireFile("mechanisms/m013-value-based-fee-routing/schemas/m013_kpi.schema.json");
-requireFile("mechanisms/m013-value-based-fee-routing/schemas/m013_fee_event.schema.json");
-requireFile("mechanisms/m013-value-based-fee-routing/schemas/m013_fee_config.schema.json");
-requireFile("mechanisms/m013-value-based-fee-routing/datasets/fixtures/v0_sample.json");
+// ---------------------------------------------------------------------------
+// Per-mechanism: KPI schema sanity (mechanism_id required) + self-tests
+// ---------------------------------------------------------------------------
+for (const mech of MECHANISMS) {
+  if (mech.kpiSchema) {
+    const schema = readJson(`${mech.dir}/${mech.kpiSchema}`);
+    if (!schema.required || !schema.required.includes("mechanism_id")) {
+      console.error(`${mech.id} KPI schema missing required fields.`);
+      process.exit(4);
+    }
+  }
+  for (const test of mech.selfTests) {
+    run("node", [`${mech.dir}/${test}`]);
+  }
+}
 
-// Basic schema sanity — m010
-const kpiSchema = readJson("mechanisms/m010-reputation-signal/schemas/m010_kpi.schema.json");
-if (!kpiSchema.required || !kpiSchema.required.includes("mechanism_id")) {
-  console.error("m010 KPI schema missing required fields.");
-  process.exit(4);
-// Schema sanity for all canonical schema artifacts.
+// ---------------------------------------------------------------------------
+// Schema sanity for all canonical .schema.json artifacts
+// ---------------------------------------------------------------------------
 const allFiles = listFilesRecursive(repoRoot);
 const schemaFiles = allFiles
   .map((abs) => path.relative(repoRoot, abs))
@@ -129,13 +212,11 @@ for (const rel of schemaFiles) {
   validateSchema(rel, readJson(rel));
 }
 
-// Basic schema sanity — m013
-const m013KpiSchema = readJson("mechanisms/m013-value-based-fee-routing/schemas/m013_kpi.schema.json");
-if (!m013KpiSchema.required || !m013KpiSchema.required.includes("mechanism_id")) {
-  console.error("m013 KPI schema missing required fields.");
-  process.exit(4);
-}
-const challengeKpiRequired = kpiSchema.properties?.challenge_kpis?.required ?? [];
+// ---------------------------------------------------------------------------
+// m010-specific schema invariants (challenge lifecycle, signal statuses)
+// ---------------------------------------------------------------------------
+const m010Kpi = readJson("mechanisms/m010-reputation-signal/schemas/m010_kpi.schema.json");
+const challengeKpiRequired = m010Kpi.properties?.challenge_kpis?.required ?? [];
 if (!challengeKpiRequired.includes("challenge_rate")) {
   console.error("KPI schema missing required challenge KPI fields.");
   process.exit(4);
@@ -154,17 +235,5 @@ if (!Array.isArray(challengeGuards) || challengeGuards.length < 4) {
   console.error("Challenge schema missing lifecycle guard clauses.");
   process.exit(6);
 }
-
-// m013 self-test
-run("node", ["mechanisms/m013-value-based-fee-routing/reference-impl/m013_fee.js"]);
-// Basic schema sanity — m012
-const m012KpiSchema = readJson("mechanisms/m012-fixed-cap-dynamic-supply/schemas/m012_kpi.schema.json");
-if (!m012KpiSchema.required || !m012KpiSchema.required.includes("mechanism_id")) {
-  console.error("m012 KPI schema missing required fields.");
-  process.exit(4);
-}
-
-// m012 self-test
-run("node", ["mechanisms/m012-fixed-cap-dynamic-supply/reference-impl/m012_supply.js"]);
 
 console.log("agentic-tokenomics verify: PASS");
