@@ -1,28 +1,9 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
-    "outDir": "./dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "paths": {
-      "@regen/core": ["./packages/core/src"],
-      "@regen/plugin-ledger-mcp": ["./packages/plugin-ledger-mcp/src"],
-      "@regen/plugin-koi-mcp": ["./packages/plugin-koi-mcp/src"]
-    }
-  },
-  "include": [
-    "packages/*/src/**/*.ts",
-    "__tests__/**/*.ts"
-  ],
-  "exclude": ["node_modules", "dist"]
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/plugin-ledger-mcp" },
+    { "path": "packages/plugin-koi-mcp" },
+    { "path": "packages/agents" }
+  ]
 }

@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "description": "ElizaOS agent scaffold for Regen Network agentic tokenomics",
+  "workspaces": [
+    "packages/core",
+    "packages/plugin-ledger-mcp",
+    "packages/plugin-koi-mcp",
+    "packages/agents"
+  ],
   "scripts": {
     "build": "tsc --build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --build --noEmit",
     "start": "tsx packages/agents/src/index.ts",
     "start:governance": "AGENT_CHARACTER=governance-analyst tsx packages/agents/src/index.ts",
     "start:registry": "AGENT_CHARACTER=registry-reviewer tsx packages/agents/src/index.ts"

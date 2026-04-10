@@ -129,7 +129,7 @@ export class OODAExecutor {
     if (!match) return true;
 
     const [, field, op, rawValue] = match;
-    const actual = (decision as Record<string, unknown>)[field];
+    const actual = (decision as unknown as Record<string, unknown>)[field];
     const expected = isNaN(Number(rawValue))
       ? rawValue.trim()
       : Number(rawValue);
