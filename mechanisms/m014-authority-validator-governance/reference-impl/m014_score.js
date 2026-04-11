@@ -109,7 +109,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function runVector(inputFile) {
-  const base = inputFile.replace(".input.json", "");
+  const base = inputFile.replace(/\.input\.json$/, "");
   const inputPath = path.join(__dirname, "test_vectors", inputFile);
   const expectedPath = path.join(__dirname, "test_vectors", `${base}.expected.json`);
 
@@ -146,7 +146,9 @@ function runVector(inputFile) {
       if (!confMatch)
         console.error(`    confidence: got ${result.confidence}, expected ${exp.confidence}`);
       if (!flagsMatch)
-        console.error(`    flags: got [${result.flags}], expected [${exp.flags}]`);
+        console.error(
+          `    flags: got ${JSON.stringify(result.flags)}, expected ${JSON.stringify(exp.flags ?? [])}`
+        );
       fail++;
     }
   }
