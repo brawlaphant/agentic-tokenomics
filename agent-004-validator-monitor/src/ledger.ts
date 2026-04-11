@@ -133,9 +133,59 @@ export class LedgerClient {
         `/cosmos/gov/v1beta1/proposals/${proposalId}/votes/${voter}`
       );
       return (data.vote || null) as Vote | null;
-    } catch {
+    } catch (err) {
+      console.error(
+        `LedgerClient.getVoteForVoter(${proposalId}, ${voter}) failed:`,
+        err
+      );
       return null;
     }
+  }
+
+  /**
+   * Fetch every vote cast on a proposal in one query. Used instead
+   * of the per-voter `getVoteForVoter` when scoring a large validator
+   * set — the per-voter path would fan out O(validators × proposals)
+   * LCD requests per cycle and trip rate limits on public endpoints.
+   * With this, we spend O(proposals) requests and index the results
+   * locally by voter address.
+   *
+   * Walks pagination via `pagination.key` with a safety cap of 25
+   * pages (500 votes per page × 25 = 12.5k voters, more than
+   * enough headroom for the current validator set).
+   */
+  async getVotesForProposal(proposalId: string): Promise<Vote[]> {
+    const pageSize = 500;
+    const MAX_PAGES = 25;
+    const votes: Vote[] = [];
+    let nextKey: string | null = null;
+    for (let i = 0; i < MAX_PAGES; i++) {
+      try {
+        const params = new URLSearchParams();
+        params.set("pagination.limit", String(pageSize));
+        if (nextKey) params.set("pagination.key", nextKey);
+
+        const data = await this.get(
+          `/cosmos/gov/v1beta1/proposals/${proposalId}/votes?${params.toString()}`
+        );
+        const page = (data.votes || []) as Vote[];
+        votes.push(...page);
+
+        const pagination = data.pagination as
+          | { next_key?: string | null }
+          | undefined;
+        const rawKey = pagination?.next_key;
+        if (!rawKey) break;
+        nextKey = rawKey;
+      } catch (err) {
+        console.error(
+          `LedgerClient.getVotesForProposal(${proposalId}) page ${i} failed:`,
+          err
+        );
+        break;
+      }
+    }
+    return votes;
   }
 
   // ── Tx-search: staking delegation events ────────────────────

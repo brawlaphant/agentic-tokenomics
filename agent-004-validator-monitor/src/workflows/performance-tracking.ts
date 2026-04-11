@@ -1,9 +1,12 @@
-import { bech32 } from "bech32";
 import { LedgerClient } from "../ledger.js";
 import { store } from "../store.js";
 import { config } from "../config.js";
 import { describePerformanceReport } from "../monitor.js";
 import { output } from "../output.js";
+import {
+  operatorToDelegator,
+  consensusPubkeyToConsAddress,
+} from "../bech32.js";
 import type { OODAWorkflow } from "../ooda.js";
 import type {
   Validator,
@@ -62,30 +65,10 @@ interface Actions {
   alertsSent: number;
 }
 
-/**
- * Convert an operator bech32 address (e.g. `regenvaloper1abc…`) to
- * the matching delegator bech32 (`regen1abc…`). Cosmos encodes both
- * forms from the same underlying 20-byte payload — only the HRP
- * differs. The delegator prefix is the operator prefix with the
- * trailing `"valoper"` stripped.
- *
- * Returns `null` if the input is not a valid bech32 string or does
- * not end in `"valoper"`. Callers must guard against null — a
- * missing conversion means the validator cannot be queried for
- * votes and should get a governance score of 0 rather than crash
- * the whole cycle.
- */
-export function operatorToAccountBech32(operatorAddress: string): string | null {
-  try {
-    const decoded = bech32.decode(operatorAddress);
-    if (!decoded.prefix.endsWith("valoper")) return null;
-    const delegatorPrefix = decoded.prefix.slice(0, -"valoper".length);
-    if (!delegatorPrefix) return null;
-    return bech32.encode(delegatorPrefix, decoded.words);
-  } catch {
-    return null;
-  }
-}
+// operator→delegator bech32 conversion lives in `../bech32.js` so the
+// performance-tracking workflow and the governance-vote tracker can
+// share one implementation. See PR #81's review for why the old
+// inline stub (which returned "") broke uptime and governance scoring.
 
 export function createPerformanceTrackingWorkflow(
   ledger: LedgerClient
@@ -115,37 +98,46 @@ export function createPerformanceTrackingWorkflow(
         signingByConsAddrLike.set(info.address, info);
       }
 
-      // Per-validator governance vote fetching. For each validator we
-      // convert the operator bech32 → delegator bech32 and query the
-      // LCD for whether the delegator voted on each recent finalized
-      // proposal. The result is a `votesCastByOperator` map that the
-      // orient phase turns into a per-validator governance score.
+      // Governance vote fetching — one LCD call per recent finalized
+      // proposal rather than one per (validator × proposal). The old
+      // O(validators × proposals) fan-out was up to ~1500 requests
+      // per cycle on mainnet (75 validators × 20 proposals) and
+      // would reliably trip rate limits on public LCD endpoints.
       //
-      // This is O(validators × proposals) LCD calls per cycle (up to
-      // 75 × 20 = 1500 requests on mainnet), so we fire them in
-      // parallel within each validator to keep the overall cycle
-      // runtime bounded. A follow-up optimization can batch the
-      // requests by querying `/proposals/{id}/votes` once per proposal
-      // and indexing locally — we keep the per-voter fetch here
-      // because it's the documented Cosmos pattern.
-      const votesCastByOperator = new Map<string, number>();
+      // We instead pull every vote on each proposal via
+      // `/cosmos/gov/v1beta1/proposals/{id}/votes` (paginated), index
+      // locally by delegator address, and count matches for each
+      // validator's delegator-bech32. Cost is O(proposals) LCD calls
+      // per cycle — 20 on mainnet — which is well inside any public
+      // endpoint's budget.
+      const votesByProposalThenVoter = new Map<
+        string,
+        Set<string>
+      >();
       await Promise.all(
-        validators.map(async (v) => {
-          const delegator = operatorToAccountBech32(v.operator_address);
-          if (!delegator) {
-            votesCastByOperator.set(v.operator_address, 0);
-            return;
+        finalizedProposals.map(async (p) => {
+          const votes = await ledger.getVotesForProposal(p.id);
+          const voters = new Set<string>();
+          for (const vote of votes) {
+            if (vote.voter) voters.add(vote.voter);
           }
-          let votes = 0;
-          await Promise.all(
-            finalizedProposals.map(async (p) => {
-              const vote = await ledger.getVoteForVoter(p.id, delegator);
-              if (vote) votes++;
-            })
-          );
-          votesCastByOperator.set(v.operator_address, votes);
+          votesByProposalThenVoter.set(p.id, voters);
         })
       );
+
+      const votesCastByOperator = new Map<string, number>();
+      for (const v of validators) {
+        const delegator = operatorToDelegator(v.operator_address);
+        if (!delegator) {
+          votesCastByOperator.set(v.operator_address, 0);
+          continue;
+        }
+        let votes = 0;
+        for (const voters of votesByProposalThenVoter.values()) {
+          if (voters.has(delegator)) votes++;
+        }
+        votesCastByOperator.set(v.operator_address, votes);
+      }
 
       return {
         validators,
@@ -168,6 +160,13 @@ export function createPerformanceTrackingWorkflow(
       const scorecards: ValidatorScorecard[] = [];
       const alerts: PerformanceAlert[] = [];
 
+      // Compute the trailing-window cutoff once — it does not depend
+      // on the validator, so there is no point recomputing it per
+      // iteration the way the original loop did.
+      const sinceIso = new Date(
+        Date.now() - config.validator.uptimeTrailingDays * 86_400_000
+      ).toISOString();
+
       // Record a commission baseline for every validator we see this
       // cycle; the commission history drives the stability penalty.
       for (const v of validators) {
@@ -183,12 +182,20 @@ export function createPerformanceTrackingWorkflow(
           bonded > 0n ? Number((tokens * 10000n) / bonded) / 100 : 0;
 
         // ── Uptime component ─────────────────────────────────
-        // When we can't find signing info, assume 100% (signed every
-        // window) rather than penalizing — better to under-count real
-        // issues than to smear a healthy validator.
-        const signing = signingByConsAddrLike.get(
-          v.consensus_pubkey?.key || ""
-        );
+        // Derive the regenvalcons1… address from the validator's
+        // consensus pubkey so it matches the keys in
+        // signingByConsAddrLike (which are `info.address`, i.e. the
+        // valcons bech32). Previously we were joining a base64
+        // pubkey string against a bech32 address and the lookup
+        // always missed — every validator was reporting 0 missed
+        // blocks, which masked real downtime. When the derivation or
+        // the lookup still fails we fall back to 100% uptime rather
+        // than penalizing a validator we cannot classify.
+        const pubkeyBase64 = v.consensus_pubkey?.key || "";
+        const consAddr = consensusPubkeyToConsAddress(pubkeyBase64);
+        const signing = consAddr
+          ? signingByConsAddrLike.get(consAddr)
+          : undefined;
         const missedBlocks = signing
           ? Number(signing.missed_blocks_counter || "0")
           : 0;
@@ -222,9 +229,6 @@ export function createPerformanceTrackingWorkflow(
         // const` in config.ts otherwise infers a literal type.
         let stabilityScore: number = config.validator.scoreWeightStability;
         if (v.jailed) stabilityScore -= config.validator.stabilityPenaltyJailing;
-        const sinceIso = new Date(
-          Date.now() - config.validator.uptimeTrailingDays * 86_400_000
-        ).toISOString();
         const commissionChanges = store.countCommissionChangesSince(
           v.operator_address,
           sinceIso
