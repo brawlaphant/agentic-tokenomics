@@ -114,8 +114,7 @@ Structured learning paths help contributors build competence progressively, from
 - [Regen Registry Handbook](https://handbook.regen.network)
 - [KOI Knowledge Base](https://regen.gaiaai.xyz)
 - [Regen Heartbeat Digests](https://gaiaaiagent.github.io/regen-heartbeat/digests/)
-<!-- TODO: Migrate http-config-architecture-v2.md to regen-network org and update link (see PR #5 discussion) -->
-- [HTTP Config Architecture v2](https://github.com/DarrenZal/koi-research/blob/regen-prod/docs/http-config-architecture-v2.md)
+- [HTTP Config Architecture v2](https://github.com/DarrenZal/koi-research/blob/regen-prod/docs/http-config-architecture-v2.md) — external draft in the KOI research fork; pending migration into the `regen-network` org (see PR [#5](https://github.com/regen-network/agentic-tokenomics/pull/5))
 
 ---
 
