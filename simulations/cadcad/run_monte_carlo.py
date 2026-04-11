@@ -72,7 +72,13 @@ def compute_confidence_intervals(df, confidence=0.95):
 
     available_metrics = [m for m in metrics if m in df.columns]
 
-    grouped = df.groupby('timestep')[available_metrics]
+    # Pandas 2.x rejects `grouped[metric]` when the groupby has already been
+    # pre-selected to a subset of columns — it raises
+    #   IndexError: Column(s) [...] already selected
+    # The original code did `df.groupby('timestep')[available_metrics]` and
+    # then tried to index per-metric inside the loop, which hits the error.
+    # Grouping without the pre-selection lets the per-metric indexing work.
+    grouped = df.groupby('timestep')
 
     ci_results = {}
     for metric in available_metrics:
