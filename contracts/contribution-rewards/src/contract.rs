@@ -22,6 +22,18 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Seconds per month approximation (30.44 days)
 const SECONDS_PER_MONTH: u64 = 2_629_744;
 
+/// Grouped parameters for `execute_record_activity`. Carries exactly the
+/// fields of `ExecuteMsg::RecordActivity` so the dispatch block can forward
+/// them in one move without tripping clippy's `too_many_arguments` lint.
+struct RecordActivityParams {
+    participant: String,
+    credit_purchase_value: Uint128,
+    credit_retirement_value: Uint128,
+    platform_facilitation_value: Uint128,
+    governance_votes: u32,
+    proposal_credits: u32,
+}
+
 // ── Instantiate ────────────────────────────────────────────────────────
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -98,12 +110,14 @@ pub fn execute(
         } => execute_record_activity(
             deps,
             info,
-            participant,
-            credit_purchase_value,
-            credit_retirement_value,
-            platform_facilitation_value,
-            governance_votes,
-            proposal_credits,
+            RecordActivityParams {
+                participant,
+                credit_purchase_value,
+                credit_retirement_value,
+                platform_facilitation_value,
+                governance_votes,
+                proposal_credits,
+            },
         ),
         ExecuteMsg::TriggerDistribution {
             community_pool_inflow,
@@ -387,16 +401,10 @@ fn execute_claim_matured(
         .add_attribute("total", total_return))
 }
 
-#[allow(clippy::too_many_arguments)]
 fn execute_record_activity(
     deps: DepsMut,
     info: MessageInfo,
-    participant: String,
-    credit_purchase_value: Uint128,
-    credit_retirement_value: Uint128,
-    platform_facilitation_value: Uint128,
-    governance_votes: u32,
-    proposal_credits: u32,
+    params: RecordActivityParams,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     require_admin(&config, &info)?;
@@ -409,30 +417,30 @@ fn execute_record_activity(
         });
     }
 
-    let participant_addr = deps.api.addr_validate(&participant)?;
+    let participant_addr = deps.api.addr_validate(&params.participant)?;
     let period = state.current_period;
 
     // Load existing or create new
     let mut score = ACTIVITY_SCORES
         .may_load(deps.storage, (period, &participant_addr))?
         .unwrap_or(ActivityScore {
-            address: participant.clone(),
+            address: params.participant.clone(),
             period,
             ..Default::default()
         });
 
     // Accumulate (additive within a period)
-    score.credit_purchase_value += credit_purchase_value;
-    score.credit_retirement_value += credit_retirement_value;
-    score.platform_facilitation_value += platform_facilitation_value;
-    score.governance_votes += governance_votes;
-    score.proposal_credits += proposal_credits;
+    score.credit_purchase_value += params.credit_purchase_value;
+    score.credit_retirement_value += params.credit_retirement_value;
+    score.platform_facilitation_value += params.platform_facilitation_value;
+    score.governance_votes += params.governance_votes;
+    score.proposal_credits += params.proposal_credits;
 
     ACTIVITY_SCORES.save(deps.storage, (period, &participant_addr), &score)?;
 
     Ok(Response::new()
         .add_attribute("action", "record_activity")
-        .add_attribute("participant", participant)
+        .add_attribute("participant", params.participant)
         .add_attribute("period", period.to_string()))
 }
 

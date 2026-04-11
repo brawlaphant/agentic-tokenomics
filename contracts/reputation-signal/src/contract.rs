@@ -9,6 +9,26 @@ use crate::error::ContractError;
 use crate::msg::*;
 use crate::state::*;
 
+/// Grouped parameters for `exec_submit_signal`. Mirrors `ExecuteMsg::SubmitSignal`.
+struct SubmitSignalParams {
+    subject_type: SubjectType,
+    subject_id: String,
+    category: String,
+    endorsement_level: u8,
+    evidence: Evidence,
+}
+
+/// Grouped parameters for `exec_update_config`. Mirrors `ExecuteMsg::UpdateConfig`.
+struct UpdateConfigParams {
+    activation_delay_seconds: Option<u64>,
+    challenge_window_seconds: Option<u64>,
+    resolution_deadline_seconds: Option<u64>,
+    challenge_bond_denom: Option<String>,
+    challenge_bond_amount: Option<Uint128>,
+    decay_half_life_seconds: Option<u64>,
+    default_min_stake: Option<Uint128>,
+}
+
 // ---------------------------------------------------------------------------
 // Entry points
 // ---------------------------------------------------------------------------
@@ -62,11 +82,13 @@ pub fn execute(
             deps,
             env,
             info,
-            subject_type,
-            subject_id,
-            category,
-            endorsement_level,
-            evidence,
+            SubmitSignalParams {
+                subject_type,
+                subject_id,
+                category,
+                endorsement_level,
+                evidence,
+            },
         ),
         ExecuteMsg::ActivateSignal { signal_id } => exec_activate_signal(deps, env, signal_id),
         ExecuteMsg::WithdrawSignal { signal_id } => {
@@ -100,13 +122,15 @@ pub fn execute(
         } => exec_update_config(
             deps,
             info,
-            activation_delay_seconds,
-            challenge_window_seconds,
-            resolution_deadline_seconds,
-            challenge_bond_denom,
-            challenge_bond_amount,
-            decay_half_life_seconds,
-            default_min_stake,
+            UpdateConfigParams {
+                activation_delay_seconds,
+                challenge_window_seconds,
+                resolution_deadline_seconds,
+                challenge_bond_denom,
+                challenge_bond_amount,
+                decay_half_life_seconds,
+                default_min_stake,
+            },
         ),
         ExecuteMsg::SetCategoryMinStake {
             category,
@@ -159,17 +183,20 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 // Execute handlers
 // ---------------------------------------------------------------------------
 
-#[allow(clippy::too_many_arguments)]
 fn exec_submit_signal(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    subject_type: SubjectType,
-    subject_id: String,
-    category: String,
-    endorsement_level: u8,
-    evidence: Evidence,
+    params: SubmitSignalParams,
 ) -> Result<Response, ContractError> {
+    let SubmitSignalParams {
+        subject_type,
+        subject_id,
+        category,
+        endorsement_level,
+        evidence,
+    } = params;
+
     // Validate endorsement level 1-5
     if !(1..=5).contains(&endorsement_level) {
         return Err(ContractError::InvalidEndorsementLevel {
@@ -535,17 +562,10 @@ fn exec_invalidate_signal(
         .add_attribute("rationale", &rationale))
 }
 
-#[allow(clippy::too_many_arguments)]
 fn exec_update_config(
     deps: DepsMut,
     info: MessageInfo,
-    activation_delay_seconds: Option<u64>,
-    challenge_window_seconds: Option<u64>,
-    resolution_deadline_seconds: Option<u64>,
-    challenge_bond_denom: Option<String>,
-    challenge_bond_amount: Option<Uint128>,
-    decay_half_life_seconds: Option<u64>,
-    default_min_stake: Option<Uint128>,
+    params: UpdateConfigParams,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -553,25 +573,25 @@ fn exec_update_config(
         return Err(ContractError::Unauthorized {});
     }
 
-    if let Some(v) = activation_delay_seconds {
+    if let Some(v) = params.activation_delay_seconds {
         config.activation_delay_seconds = v;
     }
-    if let Some(v) = challenge_window_seconds {
+    if let Some(v) = params.challenge_window_seconds {
         config.challenge_window_seconds = v;
     }
-    if let Some(v) = resolution_deadline_seconds {
+    if let Some(v) = params.resolution_deadline_seconds {
         config.resolution_deadline_seconds = v;
     }
-    if let Some(v) = challenge_bond_denom {
+    if let Some(v) = params.challenge_bond_denom {
         config.challenge_bond_denom = v;
     }
-    if let Some(v) = challenge_bond_amount {
+    if let Some(v) = params.challenge_bond_amount {
         config.challenge_bond_amount = v;
     }
-    if let Some(v) = decay_half_life_seconds {
+    if let Some(v) = params.decay_half_life_seconds {
         config.decay_half_life_seconds = v;
     }
-    if let Some(v) = default_min_stake {
+    if let Some(v) = params.default_min_stake {
         config.default_min_stake = v;
     }
 

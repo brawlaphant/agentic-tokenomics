@@ -30,6 +30,21 @@ const MAX_CANCEL_FEE: u64 = 1000; // 10%
 const MIN_ARBITER_FEE: u64 = 100; // 1%
 const MAX_ARBITER_FEE: u64 = 1500; // 15%
 
+/// Grouped parameters for `execute_update_config`. Mirrors the optional
+/// fields of `ExecuteMsg::UpdateConfig` so the dispatch block can forward
+/// them in one move without tripping clippy's `too_many_arguments` lint.
+struct UpdateConfigParams {
+    arbiter_dao: Option<String>,
+    community_pool: Option<String>,
+    provider_bond_ratio_bps: Option<u64>,
+    platform_fee_rate_bps: Option<u64>,
+    cancellation_fee_rate_bps: Option<u64>,
+    arbiter_fee_rate_bps: Option<u64>,
+    review_period_seconds: Option<u64>,
+    max_milestones: Option<u32>,
+    max_revisions: Option<u32>,
+}
+
 // ── Instantiate ────────────────────────────────────────────────────────
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -134,9 +149,19 @@ pub fn execute(
             max_milestones,
             max_revisions,
         } => execute_update_config(
-            deps, info, arbiter_dao, community_pool, provider_bond_ratio_bps,
-            platform_fee_rate_bps, cancellation_fee_rate_bps, arbiter_fee_rate_bps,
-            review_period_seconds, max_milestones, max_revisions,
+            deps,
+            info,
+            UpdateConfigParams {
+                arbiter_dao,
+                community_pool,
+                provider_bond_ratio_bps,
+                platform_fee_rate_bps,
+                cancellation_fee_rate_bps,
+                arbiter_fee_rate_bps,
+                review_period_seconds,
+                max_milestones,
+                max_revisions,
+            },
         ),
     }
 }
@@ -764,13 +789,10 @@ fn execute_cancel(
     Ok(resp)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn execute_update_config(
-    deps: DepsMut, info: MessageInfo,
-    arbiter_dao: Option<String>, community_pool: Option<String>,
-    provider_bond_ratio_bps: Option<u64>, platform_fee_rate_bps: Option<u64>,
-    cancellation_fee_rate_bps: Option<u64>, arbiter_fee_rate_bps: Option<u64>,
-    review_period_seconds: Option<u64>, max_milestones: Option<u32>, max_revisions: Option<u32>,
+    deps: DepsMut,
+    info: MessageInfo,
+    params: UpdateConfigParams,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -780,15 +802,15 @@ fn execute_update_config(
         });
     }
 
-    if let Some(v) = arbiter_dao { config.arbiter_dao = deps.api.addr_validate(&v)?; }
-    if let Some(v) = community_pool { config.community_pool = deps.api.addr_validate(&v)?; }
-    if let Some(v) = provider_bond_ratio_bps { validate_bond_ratio(v)?; config.provider_bond_ratio_bps = v; }
-    if let Some(v) = platform_fee_rate_bps { validate_fee_rate(v, MIN_PLATFORM_FEE, MAX_PLATFORM_FEE, "platform")?; config.platform_fee_rate_bps = v; }
-    if let Some(v) = cancellation_fee_rate_bps { validate_fee_rate(v, MIN_CANCEL_FEE, MAX_CANCEL_FEE, "cancellation")?; config.cancellation_fee_rate_bps = v; }
-    if let Some(v) = arbiter_fee_rate_bps { validate_fee_rate(v, MIN_ARBITER_FEE, MAX_ARBITER_FEE, "arbiter")?; config.arbiter_fee_rate_bps = v; }
-    if let Some(v) = review_period_seconds { config.review_period_seconds = v; }
-    if let Some(v) = max_milestones { config.max_milestones = v; }
-    if let Some(v) = max_revisions { config.max_revisions = v; }
+    if let Some(v) = params.arbiter_dao { config.arbiter_dao = deps.api.addr_validate(&v)?; }
+    if let Some(v) = params.community_pool { config.community_pool = deps.api.addr_validate(&v)?; }
+    if let Some(v) = params.provider_bond_ratio_bps { validate_bond_ratio(v)?; config.provider_bond_ratio_bps = v; }
+    if let Some(v) = params.platform_fee_rate_bps { validate_fee_rate(v, MIN_PLATFORM_FEE, MAX_PLATFORM_FEE, "platform")?; config.platform_fee_rate_bps = v; }
+    if let Some(v) = params.cancellation_fee_rate_bps { validate_fee_rate(v, MIN_CANCEL_FEE, MAX_CANCEL_FEE, "cancellation")?; config.cancellation_fee_rate_bps = v; }
+    if let Some(v) = params.arbiter_fee_rate_bps { validate_fee_rate(v, MIN_ARBITER_FEE, MAX_ARBITER_FEE, "arbiter")?; config.arbiter_fee_rate_bps = v; }
+    if let Some(v) = params.review_period_seconds { config.review_period_seconds = v; }
+    if let Some(v) = params.max_milestones { config.max_milestones = v; }
+    if let Some(v) = params.max_revisions { config.max_revisions = v; }
 
     CONFIG.save(deps.storage, &config)?;
 
