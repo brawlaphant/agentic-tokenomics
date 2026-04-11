@@ -68,10 +68,10 @@ python run_monte_carlo.py --csv mc.csv
 
 ### `run_stress_tests.py` — Stress Scenarios
 
-Tests 8 adversarial/failure scenarios.
+Tests 11 adversarial/failure scenarios.
 
 ```bash
-python run_stress_tests.py --all          # All 8 scenarios
+python run_stress_tests.py --all          # All 11 scenarios
 python run_stress_tests.py --scenario SC-001  # Single scenario
 ```
 
@@ -85,6 +85,9 @@ python run_stress_tests.py --scenario SC-001  # Single scenario
 | SC-006 | Governance Attack | Parameter governance frozen 3 months |
 | SC-007 | Ecological Shock | Ecological multiplier drops to 0 |
 | SC-008 | Multi-Factor Crisis | Volume + price + validator crash |
+| SC-009 | Gradual Volume Decay | 3-year linear decline, $500K → $100K/wk (chronic stress) |
+| SC-010 | Flash Crash & Recovery | 80% drop for 4 weeks, bounces to 110% of baseline |
+| SC-011 | Eco Multiplier Oscillation | eco multiplier wobbles 0.5↔1.5 every 4 weeks for 6 months |
 
 ### `analysis.py` — Post-hoc Analysis
 
