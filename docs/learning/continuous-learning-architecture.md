@@ -137,7 +137,7 @@ agent_memory:
 
 - [Regen Heartbeat README](https://gaiaaiagent.github.io/regen-heartbeat/digests/README)
 - [KOI Master Implementation Guide](https://github.com/gaiaaiagent/koi-research/blob/main/docs/KOI_MASTER_IMPLEMENTATION_GUIDE.md)
-- [HTTP Config Architecture v2](https://github.com/DarrenZal/koi-research/blob/regen-prod/docs/http-config-architecture-v2.md) — external draft in the KOI research fork; pending migration into the `regen-network` org (see PR [#5](https://github.com/regen-network/agentic-tokenomics/pull/5))
+- [HTTP Config Architecture v2](https://github.com/DarrenZal/koi-research/blob/regen-prod/docs/http-config-architecture-v2.md) — external draft in a personal fork (`DarrenZal/koi-research`); pending migration to the official `regen-network/koi-research` repository (see PR [#5](https://github.com/regen-network/agentic-tokenomics/pull/5))
 
 ---
 
