@@ -6,7 +6,22 @@ import type {
   StakingPool,
   Proposal,
   Vote,
+  DelegationEvent,
 } from "./types.js";
+
+/**
+ * Parse a Cosmos SDK coin-amount attribute into a uregen string.
+ * The staking event attributes carry amounts like `"1000uregen"` —
+ * the numeric part followed by the denom. Strip the denom and
+ * return the numeric prefix as a string so BigInt downstream can
+ * consume it losslessly. Returns null on bad input.
+ */
+function parseCoinAmount(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = raw.match(/^(\d+)/);
+  if (!m) return null;
+  return m[1] ?? null;
+}
 
 /**
  * Regen Ledger LCD (REST) client — staking, slashing, gov endpoints.
@@ -121,6 +136,145 @@ export class LedgerClient {
     } catch {
       return null;
     }
+  }
+
+  // ── Tx-search: staking delegation events ────────────────────
+  //
+  // Pulls recent tx responses for each of the three staking message
+  // types and parses them into DelegationEvent records. Each call
+  // hits a different tx-search event filter because the LCD only
+  // supports one `events=` filter per request.
+
+  async getRecentDelegationTxs(limit = 100): Promise<DelegationEvent[]> {
+    const typeUrls = [
+      "/cosmos.staking.v1beta1.MsgDelegate",
+      "/cosmos.staking.v1beta1.MsgUndelegate",
+      "/cosmos.staking.v1beta1.MsgBeginRedelegate",
+    ];
+
+    const results: DelegationEvent[] = [];
+
+    for (const typeUrl of typeUrls) {
+      try {
+        const params = new URLSearchParams();
+        params.set("events", `message.action='${typeUrl}'`);
+        params.set("pagination.limit", String(limit));
+        params.set("pagination.reverse", "true");
+        params.set("order_by", "ORDER_BY_DESC");
+
+        const data = await this.get(`/cosmos/tx/v1beta1/txs?${params.toString()}`);
+        const txResponses = (data.tx_responses || []) as Array<Record<string, unknown>>;
+
+        for (const tx of txResponses) {
+          results.push(...this.parseDelegationEventsFromTx(tx));
+        }
+      } catch {
+        // Per-type-url failure is isolated — the other two still run.
+        // An off-chain aggregator that loses one of three queries is
+        // still better than falling back to the token-delta proxy.
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Parse a single Cosmos tx_response into zero or more
+   * DelegationEvent records. Public so unit tests can feed it
+   * synthetic inputs. Matches three Cosmos SDK event types:
+   *
+   *   - `delegate`     (MsgDelegate)
+   *   - `unbond`       (MsgUndelegate)
+   *   - `redelegate`   (MsgBeginRedelegate)
+   *
+   * Also reads the `message` event to extract the delegator address
+   * (sender) because the staking events themselves don't carry it.
+   * The association is positional: the Nth staking event in a tx
+   * maps to the Nth message event's sender.
+   */
+  parseDelegationEventsFromTx(tx: Record<string, unknown>): DelegationEvent[] {
+    const txHash = typeof tx.txhash === "string" ? tx.txhash : "";
+    const timestamp =
+      typeof tx.timestamp === "string" ? tx.timestamp : new Date().toISOString();
+
+    const collected: Array<Record<string, unknown>> = [];
+    const logs = (tx.logs || []) as Array<Record<string, unknown>>;
+    for (const log of logs) {
+      collected.push(...((log.events || []) as Array<Record<string, unknown>>));
+    }
+    collected.push(...((tx.events || []) as Array<Record<string, unknown>>));
+
+    // Sender addresses from message events, in order of appearance.
+    const senders: string[] = [];
+    for (const ev of collected) {
+      if (typeof ev.type === "string" && ev.type === "message") {
+        const attributes = (ev.attributes || []) as Array<{ key: string; value: string }>;
+        const sender = attributes.find((a) => a.key === "sender");
+        if (sender) senders.push(sender.value);
+      }
+    }
+
+    const results: DelegationEvent[] = [];
+    let senderIdx = 0;
+
+    const nextSender = (): string => {
+      const s = senders[senderIdx] ?? "";
+      senderIdx++;
+      return s;
+    };
+
+    for (const ev of collected) {
+      const type = typeof ev.type === "string" ? ev.type : "";
+      const attributes = (ev.attributes || []) as Array<{ key: string; value: string }>;
+      const attr = (k: string): string | null => {
+        const hit = attributes.find((a) => a.key === k);
+        return hit ? hit.value : null;
+      };
+
+      if (type === "delegate") {
+        const validator = attr("validator") ?? "";
+        const amount = parseCoinAmount(attr("amount"));
+        if (!validator || amount === null) continue;
+        results.push({
+          txHash,
+          eventType: "delegate",
+          delegator: nextSender(),
+          validator,
+          sourceValidator: null,
+          amountUregen: amount,
+          occurredAt: timestamp,
+        });
+      } else if (type === "unbond") {
+        const validator = attr("validator") ?? "";
+        const amount = parseCoinAmount(attr("amount"));
+        if (!validator || amount === null) continue;
+        results.push({
+          txHash,
+          eventType: "undelegate",
+          delegator: nextSender(),
+          validator,
+          sourceValidator: null,
+          amountUregen: amount,
+          occurredAt: timestamp,
+        });
+      } else if (type === "redelegate") {
+        const src = attr("source_validator") ?? "";
+        const dst = attr("destination_validator") ?? "";
+        const amount = parseCoinAmount(attr("amount"));
+        if (!src || !dst || amount === null) continue;
+        results.push({
+          txHash,
+          eventType: "redelegate",
+          delegator: nextSender(),
+          validator: dst,
+          sourceValidator: src,
+          amountUregen: amount,
+          occurredAt: timestamp,
+        });
+      }
+    }
+
+    return results;
   }
 
   // ── Connectivity check ──────────────────────────────────────

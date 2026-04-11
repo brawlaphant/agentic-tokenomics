@@ -1,11 +1,10 @@
 import { LedgerClient } from "../ledger.js";
-import { store } from "../store.js";
 import { config } from "../config.js";
 import { describeDelegationFlows } from "../monitor.js";
 import { output } from "../output.js";
 import type { OODAWorkflow } from "../ooda.js";
 import type {
-  Validator,
+  DelegationEvent,
   DelegationFlow,
   DelegationFlowSummary,
   AlertLevel,
@@ -14,22 +13,32 @@ import type {
 /**
  * WF-VM-02: Delegation Flow Analysis
  *
- * Trigger: MsgDelegate / MsgUndelegate / MsgRedelegate (proxied by
- * per-cycle `validator.tokens` deltas until a real tx-stream lands)
+ * Trigger: MsgDelegate / MsgUndelegate / MsgBeginRedelegate (real
+ *          on-chain events via the LCD tx-search endpoint)
  * Layer: 1 (Fully Automated)
  *
  * OODA:
- *   Observe — Snapshot current `tokens` per validator; pull the prior
- *             snapshot from SQLite and compute per-validator deltas.
- *   Orient  — Aggregate inflow / outflow / net. Tag whale-sized
- *             movements. Pick top inflow and outflow.
+ *   Observe — Fetch recent delegation events from the LCD tx-search
+ *             endpoint for all three staking message types.
+ *   Orient  — Aggregate events per validator into DelegationFlow
+ *             records. Compute inflow/outflow/net across the whole
+ *             set. Tag whale-sized movements. Pick top inflow and
+ *             outflow.
  *   Decide  — Generate flow summary via Claude.
  *   Act     — Persist, output, alert on whale activity.
+ *
+ * Previous versions of this workflow used a token-delta MVP proxy
+ * — snapshotting `validator.tokens` per cycle and computing the
+ * delta against the previous snapshot. That proxy worked but
+ * could not distinguish delegate vs undelegate vs redelegate, did
+ * not carry delegator identity, and missed all the intra-cycle
+ * movements. The current implementation uses the real MsgDelegate
+ * / MsgUndelegate / MsgBeginRedelegate tx stream, so every flow
+ * in the summary is backed by a real on-chain transaction.
  */
 
 interface Observations {
-  validators: Validator[];
-  previousTokensByOperator: Map<string, string>;
+  events: DelegationEvent[];
 }
 
 interface Orientation {
@@ -52,6 +61,126 @@ export function absBig(x: bigint): bigint {
   return x < 0n ? -x : x;
 }
 
+/**
+ * Aggregate a flat list of DelegationEvent records into
+ * per-validator DelegationFlow records. Exported so unit tests
+ * can feed it synthetic input without going through the observe
+ * phase.
+ *
+ * Rules:
+ *   - `delegate`   → inflow to `event.validator`
+ *   - `undelegate` → outflow from `event.validator`
+ *   - `redelegate` → outflow from `event.sourceValidator`,
+ *                    inflow to `event.validator` (destination)
+ */
+export function aggregateEventsToFlows(
+  events: DelegationEvent[],
+  capturedAt: string = new Date().toISOString()
+): DelegationFlow[] {
+  // Per-validator running deltas in uregen, signed.
+  const deltaByValidator = new Map<string, bigint>();
+
+  const addDelta = (validator: string, delta: bigint) => {
+    const prev = deltaByValidator.get(validator) ?? 0n;
+    deltaByValidator.set(validator, prev + delta);
+  };
+
+  for (const ev of events) {
+    let amt: bigint;
+    try {
+      amt = BigInt(ev.amountUregen);
+    } catch {
+      continue;
+    }
+    if (amt <= 0n) continue;
+
+    if (ev.eventType === "delegate") {
+      addDelta(ev.validator, amt);
+    } else if (ev.eventType === "undelegate") {
+      addDelta(ev.validator, -amt);
+    } else if (ev.eventType === "redelegate") {
+      if (ev.sourceValidator) addDelta(ev.sourceValidator, -amt);
+      addDelta(ev.validator, amt);
+    }
+  }
+
+  const whaleThreshold = BigInt(config.validator.whaleDelegationUregen);
+  const flows: DelegationFlow[] = [];
+
+  for (const [operatorAddress, delta] of deltaByValidator) {
+    if (delta === 0n) continue;
+    const deltaAbs = absBig(delta);
+    flows.push({
+      operatorAddress,
+      // DelegationFlow carries a moniker for the narrative layer, but
+      // the event stream only has validator operator addresses. The
+      // orient phase inside the workflow resolves monikers by looking
+      // up the validator set once per cycle; the aggregator here
+      // leaves moniker as the operator address and expects the caller
+      // to backfill. Callers that only care about the aggregate math
+      // can use this field unchanged.
+      moniker: operatorAddress,
+      // Previous/current token fields are preserved for backward
+      // compatibility with the DelegationFlow shape, but they no
+      // longer correspond to validator.tokens snapshots — they
+      // describe the delta window instead.
+      previousTokens: "0",
+      currentTokens: delta.toString(),
+      deltaUregen: delta.toString(),
+      deltaAbsUregen: deltaAbs.toString(),
+      isWhale: deltaAbs >= whaleThreshold,
+      flowDirection: delta > 0n ? "INFLOW" : "OUTFLOW",
+      capturedAt,
+    });
+  }
+
+  return flows;
+}
+
+/**
+ * Summarize a list of DelegationFlow records into a
+ * DelegationFlowSummary. Exported so unit tests can pin the
+ * summary math independently of the aggregator.
+ */
+export function summarizeFlows(
+  flows: DelegationFlow[],
+  capturedAt: string = new Date().toISOString()
+): DelegationFlowSummary {
+  let totalInflow = 0n;
+  let totalOutflow = 0n;
+  let whaleFlowCount = 0;
+  let topInflow: DelegationFlow | null = null;
+  let topOutflow: DelegationFlow | null = null;
+
+  for (const f of flows) {
+    const delta = BigInt(f.deltaUregen);
+    if (delta > 0n) {
+      totalInflow += delta;
+      if (!topInflow || delta > BigInt(topInflow.deltaUregen)) {
+        topInflow = f;
+      }
+    } else if (delta < 0n) {
+      totalOutflow += -delta;
+      if (!topOutflow || -delta > BigInt(topOutflow.deltaAbsUregen)) {
+        topOutflow = f;
+      }
+    }
+    if (f.isWhale) whaleFlowCount++;
+  }
+
+  return {
+    windowLabel: "recent tx-search window",
+    totalInflowUregen: totalInflow.toString(),
+    totalOutflowUregen: totalOutflow.toString(),
+    netFlowUregen: (totalInflow - totalOutflow).toString(),
+    validatorsWithFlow: flows.length,
+    whaleFlowCount,
+    topInflow,
+    topOutflow,
+    capturedAt,
+  };
+}
+
 export function createDelegationFlowAnalysisWorkflow(
   ledger: LedgerClient
 ): OODAWorkflow<Observations, Orientation, Decision, Actions> {
@@ -60,91 +189,33 @@ export function createDelegationFlowAnalysisWorkflow(
     name: "Delegation Flow Analysis",
 
     async observe(): Promise<Observations> {
-      const validators = await ledger.getValidators();
-
-      const previousTokensByOperator = new Map<string, string>();
-      for (const v of validators) {
-        const prev = store.getPreviousTokenSnapshot(v.operator_address, false);
-        if (prev) previousTokensByOperator.set(v.operator_address, prev.tokens);
-      }
-
-      // Write the new snapshots AFTER reading previous — we want the
-      // delta to be "previous cycle vs this cycle".
-      for (const v of validators) {
-        store.recordTokenSnapshot({
-          operatorAddress: v.operator_address,
-          moniker: v.description.moniker,
-          tokens: v.tokens,
-          commissionRate: v.commission.commission_rates.rate,
-          jailed: v.jailed,
-        });
-      }
-
-      return { validators, previousTokensByOperator };
+      // Pull recent delegation tx events via the LCD tx-search
+      // endpoint. The ledger client queries each of the three
+      // staking message types separately and flattens the results
+      // into a single DelegationEvent list.
+      const events = await ledger.getRecentDelegationTxs(200);
+      return { events };
     },
 
     async orient(obs: Observations): Promise<Orientation> {
       const capturedAt = new Date().toISOString();
-      const flows: DelegationFlow[] = [];
-      const whaleThreshold = BigInt(config.validator.whaleDelegationUregen);
+      const flows = aggregateEventsToFlows(obs.events, capturedAt);
 
-      for (const v of obs.validators) {
-        const previousStr = obs.previousTokensByOperator.get(v.operator_address);
-        if (!previousStr) continue; // First time we see this validator; nothing to diff.
-
-        const previous = BigInt(previousStr);
-        const current = BigInt(v.tokens || "0");
-        const delta = current - previous;
-        const deltaAbs = absBig(delta);
-        if (delta === 0n) continue;
-
-        flows.push({
-          operatorAddress: v.operator_address,
-          moniker: v.description.moniker,
-          previousTokens: previousStr,
-          currentTokens: v.tokens,
-          deltaUregen: delta.toString(),
-          deltaAbsUregen: deltaAbs.toString(),
-          isWhale: deltaAbs >= whaleThreshold,
-          flowDirection: delta > 0n ? "INFLOW" : delta < 0n ? "OUTFLOW" : "FLAT",
-          capturedAt,
-        });
+      // Backfill monikers from the current validator set. This is a
+      // single extra LCD call per cycle — cheap — and it lets the
+      // narrative layer show operator names instead of opaque
+      // bech32 addresses.
+      const validators = await ledger.getValidators();
+      const monikers = new Map<string, string>();
+      for (const v of validators) {
+        monikers.set(v.operator_address, v.description.moniker);
       }
-
-      let totalInflow = 0n;
-      let totalOutflow = 0n;
-      let whaleFlowCount = 0;
-      let topInflow: DelegationFlow | null = null;
-      let topOutflow: DelegationFlow | null = null;
-
       for (const f of flows) {
-        const delta = BigInt(f.deltaUregen);
-        if (delta > 0n) {
-          totalInflow += delta;
-          if (!topInflow || delta > BigInt(topInflow.deltaUregen)) {
-            topInflow = f;
-          }
-        } else if (delta < 0n) {
-          totalOutflow += -delta;
-          if (!topOutflow || -delta > BigInt(topOutflow.deltaAbsUregen)) {
-            topOutflow = f;
-          }
-        }
-        if (f.isWhale) whaleFlowCount++;
+        const moniker = monikers.get(f.operatorAddress);
+        if (moniker) f.moniker = moniker;
       }
 
-      const summary: DelegationFlowSummary = {
-        windowLabel: "since previous cycle",
-        totalInflowUregen: totalInflow.toString(),
-        totalOutflowUregen: totalOutflow.toString(),
-        netFlowUregen: (totalInflow - totalOutflow).toString(),
-        validatorsWithFlow: flows.length,
-        whaleFlowCount,
-        topInflow,
-        topOutflow,
-        capturedAt,
-      };
-
+      const summary = summarizeFlows(flows, capturedAt);
       return { flows, summary };
     },
 

@@ -117,6 +117,24 @@ export interface PerformanceAlert {
   reason: string;
 }
 
+/** A single on-chain staking event parsed from a MsgDelegate /
+ * MsgUndelegate / MsgBeginRedelegate transaction. WF-VM-02's
+ * observe phase harvests these directly from the LCD tx-search
+ * endpoint; the old token-delta proxy is no longer used. */
+export interface DelegationEvent {
+  txHash: string;
+  eventType: "delegate" | "undelegate" | "redelegate";
+  delegator: string;
+  /** For delegate/undelegate, the operator address of the validator.
+   * For redelegate, the destination_validator (where stake moves TO). */
+  validator: string;
+  /** Only set for redelegate. Otherwise null. */
+  sourceValidator: string | null;
+  /** Amount in uregen as a string to preserve BigInt precision. */
+  amountUregen: string;
+  occurredAt: string;
+}
+
 /** Delegation flow analysis (WF-VM-02) */
 export interface DelegationFlow {
   operatorAddress: string;
