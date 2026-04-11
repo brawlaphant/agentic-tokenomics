@@ -152,6 +152,13 @@ export class LedgerClient {
       "/cosmos.staking.v1beta1.MsgBeginRedelegate",
     ];
 
+    // Dedup transactions by hash so a tx containing more than one of
+    // the three message types (e.g. an atomic `MsgDelegate` +
+    // `MsgUndelegate` in the same tx) is only parsed once, no matter
+    // how many of the per-type queries return it. Without this dedup
+    // every event in that tx would get aggregated multiple times,
+    // inflating the per-cycle delegation deltas.
+    const seenHashes = new Set<string>();
     const results: DelegationEvent[] = [];
 
     for (const typeUrl of typeUrls) {
@@ -166,12 +173,19 @@ export class LedgerClient {
         const txResponses = (data.tx_responses || []) as Array<Record<string, unknown>>;
 
         for (const tx of txResponses) {
+          const hash = typeof tx.txhash === "string" ? tx.txhash : "";
+          if (hash && seenHashes.has(hash)) continue;
+          if (hash) seenHashes.add(hash);
           results.push(...this.parseDelegationEventsFromTx(tx));
         }
-      } catch {
+      } catch (err) {
         // Per-type-url failure is isolated — the other two still run.
-        // An off-chain aggregator that loses one of three queries is
-        // still better than falling back to the token-delta proxy.
+        // Log rather than swallow so transient LCD issues are visible
+        // instead of silently falling back to empty delegation data.
+        console.error(
+          `LedgerClient.getRecentDelegationTxs(${typeUrl}) failed:`,
+          err
+        );
       }
     }
 
@@ -187,90 +201,110 @@ export class LedgerClient {
    *   - `unbond`       (MsgUndelegate)
    *   - `redelegate`   (MsgBeginRedelegate)
    *
-   * Also reads the `message` event to extract the delegator address
-   * (sender) because the staking events themselves don't carry it.
-   * The association is positional: the Nth staking event in a tx
-   * maps to the Nth message event's sender.
+   * Walks `tx.logs` message-by-message so each staking event is
+   * attributed to the delegator (`sender`) of its own message. A
+   * positional mapping against a flattened senders array would
+   * mis-attribute staking events whenever a tx mixes staking with
+   * non-staking messages — for example,
+   * `[MsgDelegate, MsgSend, MsgUndelegate]` would attribute the
+   * undelegate to the MsgSend sender.
+   *
+   * Falls back to `tx.events` only when `tx.logs` is empty (old LCD
+   * builds). Even in the fallback case we preserve the "scope senders
+   * to a single message" semantics by treating the flat list as one
+   * scope, which is an imperfect match but strictly no worse than
+   * the walk we replaced.
    */
   parseDelegationEventsFromTx(tx: Record<string, unknown>): DelegationEvent[] {
     const txHash = typeof tx.txhash === "string" ? tx.txhash : "";
     const timestamp =
       typeof tx.timestamp === "string" ? tx.timestamp : new Date().toISOString();
 
-    const collected: Array<Record<string, unknown>> = [];
     const logs = (tx.logs || []) as Array<Record<string, unknown>>;
-    for (const log of logs) {
-      collected.push(...((log.events || []) as Array<Record<string, unknown>>));
-    }
-    collected.push(...((tx.events || []) as Array<Record<string, unknown>>));
-
-    // Sender addresses from message events, in order of appearance.
-    const senders: string[] = [];
-    for (const ev of collected) {
-      if (typeof ev.type === "string" && ev.type === "message") {
-        const attributes = (ev.attributes || []) as Array<{ key: string; value: string }>;
-        const sender = attributes.find((a) => a.key === "sender");
-        if (sender) senders.push(sender.value);
+    const eventScopes: Array<Array<Record<string, unknown>>> = [];
+    if (logs.length > 0) {
+      for (const log of logs) {
+        eventScopes.push(
+          (log.events || []) as Array<Record<string, unknown>>
+        );
       }
+    } else {
+      // No per-message logs — very old LCD build. Fall back to the
+      // flattened `tx.events` list as a single scope.
+      eventScopes.push(
+        (tx.events || []) as Array<Record<string, unknown>>
+      );
     }
 
     const results: DelegationEvent[] = [];
-    let senderIdx = 0;
 
-    const nextSender = (): string => {
-      const s = senders[senderIdx] ?? "";
-      senderIdx++;
-      return s;
-    };
+    for (const events of eventScopes) {
+      // Within one message's events there is at most one relevant
+      // `message.sender` attribute — capture it once and use it for
+      // every staking event in the same scope.
+      let sender = "";
+      for (const ev of events) {
+        if (typeof ev.type === "string" && ev.type === "message") {
+          const attributes =
+            (ev.attributes || []) as Array<{ key: string; value: string }>;
+          const hit = attributes.find((a) => a.key === "sender");
+          if (hit) {
+            sender = hit.value;
+            break;
+          }
+        }
+      }
 
-    for (const ev of collected) {
-      const type = typeof ev.type === "string" ? ev.type : "";
-      const attributes = (ev.attributes || []) as Array<{ key: string; value: string }>;
-      const attr = (k: string): string | null => {
-        const hit = attributes.find((a) => a.key === k);
-        return hit ? hit.value : null;
-      };
+      for (const ev of events) {
+        const type = typeof ev.type === "string" ? ev.type : "";
+        const attributes =
+          (ev.attributes || []) as Array<{ key: string; value: string }>;
+        const attr = (k: string): string | null => {
+          const hit = attributes.find((a) => a.key === k);
+          return hit ? hit.value : null;
+        };
 
-      if (type === "delegate") {
-        const validator = attr("validator") ?? "";
-        const amount = parseCoinAmount(attr("amount"));
-        if (!validator || amount === null) continue;
-        results.push({
-          txHash,
-          eventType: "delegate",
-          delegator: nextSender(),
-          validator,
-          sourceValidator: null,
-          amountUregen: amount,
-          occurredAt: timestamp,
-        });
-      } else if (type === "unbond") {
-        const validator = attr("validator") ?? "";
-        const amount = parseCoinAmount(attr("amount"));
-        if (!validator || amount === null) continue;
-        results.push({
-          txHash,
-          eventType: "undelegate",
-          delegator: nextSender(),
-          validator,
-          sourceValidator: null,
-          amountUregen: amount,
-          occurredAt: timestamp,
-        });
-      } else if (type === "redelegate") {
-        const src = attr("source_validator") ?? "";
-        const dst = attr("destination_validator") ?? "";
-        const amount = parseCoinAmount(attr("amount"));
-        if (!src || !dst || amount === null) continue;
-        results.push({
-          txHash,
-          eventType: "redelegate",
-          delegator: nextSender(),
-          validator: dst,
-          sourceValidator: src,
-          amountUregen: amount,
-          occurredAt: timestamp,
-        });
+        if (type === "delegate") {
+          const validator = attr("validator") ?? "";
+          const amount = parseCoinAmount(attr("amount"));
+          if (!validator || amount === null) continue;
+          results.push({
+            txHash,
+            eventType: "delegate",
+            delegator: sender,
+            validator,
+            sourceValidator: null,
+            amountUregen: amount,
+            occurredAt: timestamp,
+          });
+        } else if (type === "unbond") {
+          const validator = attr("validator") ?? "";
+          const amount = parseCoinAmount(attr("amount"));
+          if (!validator || amount === null) continue;
+          results.push({
+            txHash,
+            eventType: "undelegate",
+            delegator: sender,
+            validator,
+            sourceValidator: null,
+            amountUregen: amount,
+            occurredAt: timestamp,
+          });
+        } else if (type === "redelegate") {
+          const src = attr("source_validator") ?? "";
+          const dst = attr("destination_validator") ?? "";
+          const amount = parseCoinAmount(attr("amount"));
+          if (!src || !dst || amount === null) continue;
+          results.push({
+            txHash,
+            eventType: "redelegate",
+            delegator: sender,
+            validator: dst,
+            sourceValidator: src,
+            amountUregen: amount,
+            occurredAt: timestamp,
+          });
+        }
       }
     }
 

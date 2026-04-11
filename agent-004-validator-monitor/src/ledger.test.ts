@@ -117,9 +117,13 @@ describe("LedgerClient.parseDelegationEventsFromTx", () => {
   });
 
   it("parses multiple staking events in a single batched tx", () => {
-    // Two delegations and one undelegation in one tx, with positional
-    // sender matching — sender[0] → first staking event, sender[1] →
-    // second, sender[2] → third.
+    // A Cosmos SDK tx with three messages surfaces them as three
+    // separate `logs[]` entries, each carrying its own message event
+    // with its own sender. We iterate log-by-log so each staking
+    // event is attributed to its own delegator rather than
+    // positionally mapping against a flattened sender array (which
+    // would mis-attribute if a tx mixed staking with non-staking
+    // messages).
     const tx = {
       txhash: "tx-batched",
       timestamp: "2026-02-18T12:00:00Z",
@@ -127,8 +131,6 @@ describe("LedgerClient.parseDelegationEventsFromTx", () => {
         {
           events: [
             { type: "message", attributes: [{ key: "sender", value: "regen1d1" }] },
-            { type: "message", attributes: [{ key: "sender", value: "regen1d2" }] },
-            { type: "message", attributes: [{ key: "sender", value: "regen1d3" }] },
             {
               type: "delegate",
               attributes: [
@@ -136,6 +138,11 @@ describe("LedgerClient.parseDelegationEventsFromTx", () => {
                 { key: "amount", value: "100uregen" },
               ],
             },
+          ],
+        },
+        {
+          events: [
+            { type: "message", attributes: [{ key: "sender", value: "regen1d2" }] },
             {
               type: "delegate",
               attributes: [
@@ -143,6 +150,11 @@ describe("LedgerClient.parseDelegationEventsFromTx", () => {
                 { key: "amount", value: "200uregen" },
               ],
             },
+          ],
+        },
+        {
+          events: [
+            { type: "message", attributes: [{ key: "sender", value: "regen1d3" }] },
             {
               type: "unbond",
               attributes: [
@@ -159,6 +171,56 @@ describe("LedgerClient.parseDelegationEventsFromTx", () => {
     expect(out[0]!.delegator).toBe("regen1d1");
     expect(out[1]!.delegator).toBe("regen1d2");
     expect(out[2]!.delegator).toBe("regen1d3");
+  });
+
+  it("attributes staking events through interleaved non-staking messages", () => {
+    // The old positional-match code would have attributed the
+    // undelegate to the MsgSend sender here, because the senders
+    // array would have been [d1, sender-of-send, d3] and the third
+    // staking event (there's only one) would fall through to the
+    // wrong slot. Iterating log-by-log fixes that.
+    const tx = {
+      txhash: "tx-interleaved",
+      timestamp: "2026-02-18T12:00:00Z",
+      logs: [
+        {
+          events: [
+            { type: "message", attributes: [{ key: "sender", value: "regen1delegator" }] },
+            {
+              type: "delegate",
+              attributes: [
+                { key: "validator", value: "regenvaloper1a" },
+                { key: "amount", value: "100uregen" },
+              ],
+            },
+          ],
+        },
+        {
+          events: [
+            { type: "message", attributes: [{ key: "sender", value: "regen1sendsomething" }] },
+            // No staking event in this message.
+          ],
+        },
+        {
+          events: [
+            { type: "message", attributes: [{ key: "sender", value: "regen1undelegator" }] },
+            {
+              type: "unbond",
+              attributes: [
+                { key: "validator", value: "regenvaloper1a" },
+                { key: "amount", value: "50uregen" },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const out = client.parseDelegationEventsFromTx(tx);
+    expect(out).toHaveLength(2);
+    expect(out[0]!.eventType).toBe("delegate");
+    expect(out[0]!.delegator).toBe("regen1delegator");
+    expect(out[1]!.eventType).toBe("undelegate");
+    expect(out[1]!.delegator).toBe("regen1undelegator");
   });
 
   it("ignores delegate events with missing validator attribute", () => {
