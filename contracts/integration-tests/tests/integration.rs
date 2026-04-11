@@ -2144,10 +2144,4 @@ fn test_reputation_signal_coexistence_with_curation() {
     // m010 lifecycle behavior an off-chain curation consumer must
     // trust: "if I query after activation, the score reflects the
     // signal". This test pins that invariant.
-    //
-    // Silence unused-variable warnings on the curator address —
-    // future extensions of this test can exercise a curator flow
-    // inside the same App to cover the full M010 → M011 handoff
-    // once m011 acquires a real cross-contract reputation query.
-    let _ = curator;
 }
