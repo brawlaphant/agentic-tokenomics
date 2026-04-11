@@ -325,12 +325,6 @@ def run_stress_scenario(scenario_id, T=260, seed=42):
     sim_params['_price_crash_factor'] = scenario.get('price_crash_factor', None)
     sim_params['_bank_run_epoch'] = scenario.get('stability_bank_run_epoch', None)
     sim_params['_bank_run_exit_fraction'] = scenario.get('bank_run_exit_fraction', None)
-    # New scenario hooks (see model/params.py)
-    sim_params['_retirement_boost_schedule'] = scenario.get('retirement_boost_schedule', None)
-    sim_params['_bear_market_start'] = scenario.get('bear_market_start', None)
-    sim_params['_bear_market_price_factor'] = scenario.get('bear_market_price_factor', None)
-    sim_params['_maturity_wall_epoch'] = scenario.get('maturity_wall_epoch', None)
-    sim_params['_maturity_wall_fraction'] = scenario.get('maturity_wall_fraction', None)
 
     # Build cadCAD configuration with stress-aware PSUBs
     sim_state = copy.deepcopy(initial_state)
