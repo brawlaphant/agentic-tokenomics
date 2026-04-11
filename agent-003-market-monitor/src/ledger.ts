@@ -144,24 +144,45 @@ export class LedgerClient {
   // rather than crashing the cycle.
 
   async getRecentRetirementTxs(limit = 100): Promise<Retirement[]> {
-    try {
-      const params = new URLSearchParams();
-      params.set("events", "message.action='/regen.ecocredit.v1.MsgRetire'");
-      params.set("pagination.limit", String(limit));
-      params.set("pagination.reverse", "true");
-      params.set("order_by", "ORDER_BY_DESC");
+    // Query both the v1 and v1beta1 MsgRetire type URLs — the SDK
+    // has carried both for years and registries still emit v1beta1
+    // for older code paths. The parser below accepts either event
+    // type. Dedup by tx hash so the same tx appearing under both
+    // queries is only processed once.
+    const typeUrls = [
+      "/regen.ecocredit.v1.MsgRetire",
+      "/regen.ecocredit.v1beta1.MsgRetire",
+    ];
 
-      const data = await this.get(`/cosmos/tx/v1beta1/txs?${params.toString()}`);
-      const txResponses = (data.tx_responses || []) as Array<Record<string, unknown>>;
+    const seenHashes = new Set<string>();
+    const retirements: Retirement[] = [];
 
-      const retirements: Retirement[] = [];
-      for (const tx of txResponses) {
-        retirements.push(...this.parseRetirementsFromTx(tx));
+    for (const typeUrl of typeUrls) {
+      try {
+        const params = new URLSearchParams();
+        params.set("events", `message.action='${typeUrl}'`);
+        params.set("pagination.limit", String(limit));
+        params.set("pagination.reverse", "true");
+        params.set("order_by", "ORDER_BY_DESC");
+
+        const data = await this.get(`/cosmos/tx/v1beta1/txs?${params.toString()}`);
+        const txResponses = (data.tx_responses || []) as Array<Record<string, unknown>>;
+
+        for (const tx of txResponses) {
+          const hash = typeof tx.txhash === "string" ? tx.txhash : "";
+          if (hash && seenHashes.has(hash)) continue;
+          if (hash) seenHashes.add(hash);
+          retirements.push(...this.parseRetirementsFromTx(tx));
+        }
+      } catch (err) {
+        console.error(
+          `LedgerClient.getRecentRetirementTxs(${typeUrl}) failed:`,
+          err
+        );
       }
-      return retirements;
-    } catch {
-      return [];
     }
+
+    return retirements;
   }
 
   /**
@@ -176,14 +197,21 @@ export class LedgerClient {
     const events: Array<Record<string, unknown>> = [];
 
     // Cosmos LCD responses can carry events at two levels: per-msg
-    // inside `logs[i].events[]`, and flattened at `tx.events[]`. We
-    // harvest both for maximum compatibility across SDK versions.
-    for (const log of logs) {
-      const logEvents = (log.events || []) as Array<Record<string, unknown>>;
-      events.push(...logEvents);
-    }
+    // inside `logs[i].events[]`, and flattened at `tx.events[]`.
+    // In modern Cosmos SDK versions the flat list is a superset of
+    // everything in the logs, so walking both paths double-counts
+    // every event. Prefer the flat list if it's present and non-empty,
+    // and fall back to the per-log list only when the flat list is
+    // missing or empty (very old LCD builds).
     const flatEvents = (tx.events || []) as Array<Record<string, unknown>>;
-    events.push(...flatEvents);
+    if (flatEvents.length > 0) {
+      events.push(...flatEvents);
+    } else {
+      for (const log of logs) {
+        const logEvents = (log.events || []) as Array<Record<string, unknown>>;
+        events.push(...logEvents);
+      }
+    }
 
     const results: Retirement[] = [];
     for (const ev of events) {
@@ -207,9 +235,28 @@ export class LedgerClient {
       const batchDenom = attr("batch_denom") ?? attr("batchDenom") ?? "";
       if (!batchDenom) continue;
 
-      const quantityRaw = attr("amount") ?? attr("quantity") ?? "0";
-      const quantity = Number(quantityRaw);
-      if (!Number.isFinite(quantity) || quantity <= 0) continue;
+      // Parse raw integer units as BigInt first to preserve precision
+      // beyond Number.MAX_SAFE_INTEGER. Regen batches are 6-decimal
+      // today (capped well below 2^53), but higher-precision credit
+      // types (18-decimal biodiversity tokens etc.) are on the roadmap
+      // and the parser should not lose precision at the boundary.
+      const quantityRaw = (attr("amount") ?? attr("quantity") ?? "0").trim();
+      let quantityBig: bigint;
+      try {
+        // Strip any decimal suffix — the on-chain event always emits
+        // the smallest-unit integer, but some forwarders prettify it.
+        const intPart = quantityRaw.split(".")[0] || "0";
+        quantityBig = BigInt(intPart);
+      } catch {
+        continue;
+      }
+      if (quantityBig <= 0n) continue;
+      // The downstream Retirement record uses `number` for ergonomics.
+      // For current Regen credit precision this is a safe downcast;
+      // future higher-precision assets should lift the whole field to
+      // string/bigint in types.ts.
+      const quantity = Number(quantityBig);
+      if (!Number.isFinite(quantity)) continue;
 
       const retiree = attr("owner") ?? attr("retirer") ?? "";
       const jurisdiction = attr("jurisdiction");

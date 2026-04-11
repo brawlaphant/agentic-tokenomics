@@ -202,6 +202,27 @@ class Store {
     return row || null;
   }
 
+  /** Latest median ask price for a class, pulled from the most recent
+   * liquidity snapshot. Used by WF-MM-03 to value retirement volume
+   * in USD rather than treating quantity as 1:1 with USD. Returns
+   * null when no snapshot exists yet. */
+  getLatestMedianAsk(classId: string): number | null {
+    const row = this.db
+      .prepare(
+        `SELECT snapshot FROM liquidity_snapshots
+         WHERE class_id = ? ORDER BY id DESC LIMIT 1`
+      )
+      .get(classId) as { snapshot: string } | undefined;
+    if (!row) return null;
+    try {
+      const parsed = JSON.parse(row.snapshot) as { medianAskUsd?: number };
+      const m = parsed.medianAskUsd;
+      return typeof m === "number" && m > 0 ? m : null;
+    } catch {
+      return null;
+    }
+  }
+
   // ── Retirement summaries ───────────────────────────────────
 
   saveRetirementSummary(row: {

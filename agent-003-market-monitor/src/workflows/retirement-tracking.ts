@@ -73,10 +73,18 @@ export function computeDemandIndex(
  * Aggregate a list of Retirement records into per-class summaries.
  * Exported so unit tests can feed it synthetic input without going
  * through the observe phase.
+ *
+ * `classPriceUsd` provides a per-class USD reference price (dollars
+ * per credit) that valueing the retirement volume relies on. In
+ * production the prices come from the most recent WF-MM-02 median ask
+ * snapshot; tests inject a Map directly. Classes missing from the
+ * map fall back to 1:1 USD, which preserves the prior behavior and
+ * documents the "no price oracle yet" state.
  */
 export function aggregateRetirementsByClass(
   retirements: Retirement[],
-  capturedAt: string = new Date().toISOString()
+  capturedAt: string = new Date().toISOString(),
+  classPriceUsd: Map<string, number> = new Map()
 ): Map<string, RetirementSummary> {
   const byClass = new Map<string, Retirement[]>();
   for (const r of retirements) {
@@ -123,10 +131,12 @@ export function aggregateRetirementsByClass(
     const pctWithJurisdiction =
       retirementCount > 0 ? (jurisdictionCount / retirementCount) * 100 : 0;
 
-    // Treat USD value as 1:1 with quantity for now. Price oracle
-    // integration is future work — documented as an open question
-    // in the workflow spec.
-    const totalValueUsd = totalQuantity;
+    // Value retirement volume using the most recent median ask
+    // price from WF-MM-02 for this class when available. Falls back
+    // to 1:1 USD when no snapshot exists yet — this keeps the field
+    // populated without pretending there's a price we don't have.
+    const unitPriceUsd = classPriceUsd.get(classId) ?? 1;
+    const totalValueUsd = totalQuantity * unitPriceUsd;
     const demandIndex = computeDemandIndex(
       totalQuantity,
       retirementCount,
@@ -168,7 +178,21 @@ export function createRetirementTrackingWorkflow(
     },
 
     async orient(obs: Observations): Promise<Orientation> {
-      const summariesByClass = aggregateRetirementsByClass(obs.retirements);
+      // Build the per-class price map from the latest liquidity
+      // snapshots so aggregation can value retirement volume without
+      // duplicating the ask-price parsing logic.
+      const classPriceUsd = new Map<string, number>();
+      const distinctClassIds = new Set(obs.retirements.map((r) => r.classId));
+      for (const classId of distinctClassIds) {
+        const price = store.getLatestMedianAsk(classId);
+        if (price !== null) classPriceUsd.set(classId, price);
+      }
+
+      const summariesByClass = aggregateRetirementsByClass(
+        obs.retirements,
+        undefined,
+        classPriceUsd
+      );
       return { summariesByClass };
     },
 
