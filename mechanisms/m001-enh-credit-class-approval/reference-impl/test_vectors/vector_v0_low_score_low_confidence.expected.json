@@ -1,0 +1,17 @@
+{
+  "_comment": "0.4*200 + 0.3*200 + 0.2*200 + 0.1*200 = 200. Score is strictly below 300, but confidence (1/4 = 250) is not greater than 900, so the REJECT branch does NOT fire and the proposal falls through to CONDITIONAL. Protects against the agent auto-rejecting when the data is too thin to support a confident reject.",
+  "scores": [
+    {
+      "proposal_id": "edge-low-score-low-confidence",
+      "score": 200,
+      "confidence": 250,
+      "recommendation": "CONDITIONAL",
+      "factors": {
+        "methodology_quality": 200,
+        "admin_reputation": 200,
+        "novelty": 200,
+        "completeness": 200
+      }
+    }
+  ]
+}

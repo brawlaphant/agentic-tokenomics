@@ -1,0 +1,17 @@
+{
+  "_comment": "0.4*700 + 0.3*700 + 0.2*700 + 0.1*700 = 280 + 210 + 140 + 70 = 700. 700 >= 700, so APPROVE fires at the exact boundary. Confidence 1000 because all four data-availability flags are true.",
+  "scores": [
+    {
+      "proposal_id": "edge-approve-exact-700",
+      "score": 700,
+      "confidence": 1000,
+      "recommendation": "APPROVE",
+      "factors": {
+        "methodology_quality": 700,
+        "admin_reputation": 700,
+        "novelty": 700,
+        "completeness": 700
+      }
+    }
+  ]
+}

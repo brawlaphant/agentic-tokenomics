@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: inputs that intentionally breach the 0..1000 range. methodology_quality=1500 clamps to 1000, admin_reputation=1200 clamps to 1000, novelty=-100 clamps to 0. Pins the clamp behavior so a future refactor cannot silently remove it.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "proposals": [
+    {
+      "proposal": {
+        "proposal_id": "edge-overflow-clamp",
+        "credit_type": "BT",
+        "methodology_iri": "koi://methodology/boundary-overflow",
+        "admin_address": "regen1edgeoverflow"
+      },
+      "factors": {
+        "methodology_quality": 1500,
+        "admin_reputation": 1200,
+        "novelty": -100,
+        "completeness": 500,
+        "reputation_available": true,
+        "methodology_resolvable": false,
+        "sufficient_classes": true,
+        "history_available": false
+      }
+    }
+  ]
+}

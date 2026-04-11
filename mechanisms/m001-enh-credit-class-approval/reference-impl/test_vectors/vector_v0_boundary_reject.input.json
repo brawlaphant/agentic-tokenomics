@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: score lands exactly one point below the REJECT threshold (299) with high enough confidence to trigger auto-reject. meth=rep=nov=300, comp=290 yields 120+90+60+29 = 299.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "proposals": [
+    {
+      "proposal": {
+        "proposal_id": "edge-reject-exact-299",
+        "credit_type": "C",
+        "methodology_iri": "koi://methodology/boundary-reject",
+        "admin_address": "regen1edgereject0"
+      },
+      "factors": {
+        "methodology_quality": 300,
+        "admin_reputation": 300,
+        "novelty": 300,
+        "completeness": 290,
+        "reputation_available": true,
+        "methodology_resolvable": true,
+        "sufficient_classes": true,
+        "history_available": true
+      }
+    }
+  ]
+}

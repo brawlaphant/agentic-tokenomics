@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: every factor at the ceiling of 1000 with every data-availability flag set. Verifies that the clamp doesn't over-clip and that the composite correctly maxes at 1000.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "proposals": [
+    {
+      "proposal": {
+        "proposal_id": "edge-all-maximum",
+        "credit_type": "C",
+        "methodology_iri": "koi://methodology/gold-standard",
+        "admin_address": "regen1edgemaxmax"
+      },
+      "factors": {
+        "methodology_quality": 1000,
+        "admin_reputation": 1000,
+        "novelty": 1000,
+        "completeness": 1000,
+        "reputation_available": true,
+        "methodology_resolvable": true,
+        "sufficient_classes": true,
+        "history_available": true
+      }
+    }
+  ]
+}

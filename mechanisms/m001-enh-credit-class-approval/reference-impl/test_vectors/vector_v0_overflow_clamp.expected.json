@@ -1,0 +1,17 @@
+{
+  "_comment": "After clamping: methodology_quality 1000, admin_reputation 1000, novelty 0, completeness 500. 0.4*1000 + 0.3*1000 + 0.2*0 + 0.1*500 = 400 + 300 + 0 + 50 = 750. Confidence is 2/4 = 500 (reputation_available + sufficient_classes are true; methodology_resolvable and history_available are false). 750 >= 700 so APPROVE.",
+  "scores": [
+    {
+      "proposal_id": "edge-overflow-clamp",
+      "score": 750,
+      "confidence": 500,
+      "recommendation": "APPROVE",
+      "factors": {
+        "methodology_quality": 1000,
+        "admin_reputation": 1000,
+        "novelty": 0,
+        "completeness": 500
+      }
+    }
+  ]
+}
