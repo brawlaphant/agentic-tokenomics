@@ -16,11 +16,11 @@ The guides are complementary to:
 | Guide | Mechanism | Mechanism type | Status |
 |---|---|---|---|
 | [m001-enh.md](m001-enh.md) | Credit Class Approval Voting | Scoring (0-1000 composite, 3-way recommendation) | ✅ Written |
+| [m008.md](m008.md) | Data Attestation Bonding | Scoring (4-factor, no recommendation) | ✅ Written |
+| [m009.md](m009.md) | Service Provision Escrow | Dual-guard scoring (score AND confidence) | ✅ Written |
+| [m010.md](m010.md) | Reputation Signal | Event-driven decay-weighted average | ✅ Written |
 | [m012.md](m012.md) | Fixed Cap Dynamic Supply | Supply dynamics (BigInt arithmetic, phase-gated multipliers) | ✅ Written |
 | [m014.md](m014.md) | Authority Validator Governance | Validator performance (re-normalized weighted score) | ✅ Written |
-| m008.md | Data Attestation Bonding | Scoring | ⏳ TODO — follow m001-enh template |
-| m009.md | Service Provision Escrow | Dual-guard scoring (score AND confidence) | ⏳ TODO — follow m001-enh template |
-| m010.md | Reputation Signal | Stake-weighted endorsement + challenge lifecycle | ⏳ TODO |
 | m011.md | Marketplace Curation | 7-factor quality scoring + collections | ⏳ TODO |
 | m013.md | Value-Based Fee Routing | Fee computation + pool distribution | ⏳ TODO — follow m012 template |
 | m015.md | Contribution-Weighted Rewards | Stability + activity tiers | ⏳ TODO |
