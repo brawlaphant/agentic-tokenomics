@@ -79,6 +79,14 @@ jobs:
         working-directory: agent-002-governance-analyst
         run: npx tsc --noEmit
 
+      - name: Install agent-003-market-monitor/ dependencies
+        working-directory: agent-003-market-monitor
+        run: npm ci
+
+      - name: Typecheck agent-003-market-monitor/
+        working-directory: agent-003-market-monitor
+        run: npx tsc --noEmit
+
   # ── Spec verification: schemas, reference impls, datasets ───────────
   verify-specs:
     name: Verify Specs
