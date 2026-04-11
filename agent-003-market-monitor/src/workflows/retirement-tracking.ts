@@ -4,45 +4,37 @@ import { config } from "../config.js";
 import { describeRetirementSummary } from "../monitor.js";
 import { output } from "../output.js";
 import type { OODAWorkflow } from "../ooda.js";
-import type {
-  CreditClass,
-  CreditBatch,
-  BatchSupply,
-  RetirementSummary,
-} from "../types.js";
+import type { Retirement, RetirementSummary } from "../types.js";
 
 /**
  * WF-MM-03: Retirement Pattern Analysis
  *
- * Trigger: MsgRetire event (proxied by per-cycle retired-amount deltas
- *          until the Ledger MCP provides an event stream)
+ * Trigger: MsgRetire events (LCD tx-search)
  * Layer: 1 (Fully Automated)
  *
  * OODA:
- *   Observe — Fetch credit classes + batches + batch supplies. The
- *             supply response includes `retired_amount`, which we
- *             compare against the previously observed amount to derive
- *             a per-class retirement delta for this cycle.
- *   Orient  — Build a RetirementSummary per class: totals, unique
- *             retirees proxied by batch count for this MVP, demand
- *             index derived from quantity vs trailing baseline.
+ *   Observe — Fetch recent MsgRetire tx responses from the LCD
+ *             tx-search endpoint and parse them into Retirement
+ *             records. Each tx can emit multiple retirements if
+ *             the user batched them.
+ *   Orient  — Group retirements by credit class. Aggregate totals,
+ *             unique retirees, jurisdiction-metadata share, top
+ *             retiree, and derive the demand index.
  *   Decide  — Generate narrative summary for classes that moved.
  *   Act     — Persist, output, alert on large positive demand shifts.
  *
- * This MVP uses the batch supply query as the retirement source. A
- * follow-up PR will plug in a real tx-stream client (proto.regen.
- * ecocredit.v1.MsgRetire) once the LCD event endpoint is available.
+ * Previous versions of this workflow used the per-batch supply
+ * query as an MVP proxy for retirement activity — comparing
+ * `retired_amount` across cycles to derive a delta. That worked
+ * but could not carry retiree identity, jurisdiction, or
+ * per-event timestamp. The current implementation uses the real
+ * MsgRetire tx stream via `ledger.getRecentRetirementTxs`, so all
+ * five fields on the Retirement record are now populated from
+ * ledger state rather than synthesized.
  */
 
-interface BatchWithSupply {
-  batch: CreditBatch;
-  supply: BatchSupply;
-  classId: string;
-}
-
 interface Observations {
-  classes: CreditClass[];
-  batchesWithSupply: BatchWithSupply[];
+  retirements: Retirement[];
 }
 
 interface Orientation {
@@ -62,11 +54,6 @@ interface Actions {
   alertsSent: number;
 }
 
-function classIdFromBatchDenom(denom: string): string {
-  const idx = denom.indexOf("-");
-  return idx > 0 ? denom.slice(0, idx) : denom;
-}
-
 /** Demand index on a bounded 0-100 scale. Inputs are rolling and a
  * class with no trailing activity gets 0. The index is intentionally
  * simple — it exists so the narrative layer has a single number to
@@ -82,6 +69,88 @@ export function computeDemandIndex(
   return Math.round(volumeComponent + countComponent + breadthComponent);
 }
 
+/**
+ * Aggregate a list of Retirement records into per-class summaries.
+ * Exported so unit tests can feed it synthetic input without going
+ * through the observe phase.
+ */
+export function aggregateRetirementsByClass(
+  retirements: Retirement[],
+  capturedAt: string = new Date().toISOString()
+): Map<string, RetirementSummary> {
+  const byClass = new Map<string, Retirement[]>();
+  for (const r of retirements) {
+    const bucket = byClass.get(r.classId) || [];
+    bucket.push(r);
+    byClass.set(r.classId, bucket);
+  }
+
+  const summariesByClass = new Map<string, RetirementSummary>();
+
+  for (const [classId, rows] of byClass) {
+    if (rows.length === 0) continue;
+
+    let totalQuantity = 0;
+    const retireeSet = new Set<string>();
+    const retireeQuantity = new Map<string, number>();
+    let jurisdictionCount = 0;
+
+    for (const r of rows) {
+      totalQuantity += r.quantity;
+      if (r.retiree) {
+        retireeSet.add(r.retiree);
+        retireeQuantity.set(
+          r.retiree,
+          (retireeQuantity.get(r.retiree) ?? 0) + r.quantity
+        );
+      }
+      if (r.jurisdiction) jurisdictionCount++;
+    }
+
+    if (totalQuantity === 0) continue;
+
+    let topRetiree: string | null = null;
+    let topRetireeQuantity = 0;
+    for (const [retiree, qty] of retireeQuantity) {
+      if (qty > topRetireeQuantity) {
+        topRetiree = retiree;
+        topRetireeQuantity = qty;
+      }
+    }
+
+    const retirementCount = rows.length;
+    const uniqueRetirees = retireeSet.size;
+    const pctWithJurisdiction =
+      retirementCount > 0 ? (jurisdictionCount / retirementCount) * 100 : 0;
+
+    // Treat USD value as 1:1 with quantity for now. Price oracle
+    // integration is future work — documented as an open question
+    // in the workflow spec.
+    const totalValueUsd = totalQuantity;
+    const demandIndex = computeDemandIndex(
+      totalQuantity,
+      retirementCount,
+      uniqueRetirees
+    );
+
+    summariesByClass.set(classId, {
+      classId,
+      windowHours: config.market.retirementWindowHours,
+      retirementCount,
+      totalQuantity,
+      totalValueUsd,
+      uniqueRetirees,
+      topRetiree,
+      topRetireeQuantity,
+      pctWithJurisdiction,
+      demandIndex,
+      capturedAt,
+    });
+  }
+
+  return summariesByClass;
+}
+
 export function createRetirementTrackingWorkflow(
   ledger: LedgerClient
 ): OODAWorkflow<Observations, Orientation, Decision, Actions> {
@@ -90,90 +159,16 @@ export function createRetirementTrackingWorkflow(
     name: "Retirement Pattern Analysis",
 
     async observe(): Promise<Observations> {
-      const [classes, batches] = await Promise.all([
-        ledger.getCreditClasses(),
-        ledger.getCreditBatches(),
-      ]);
-
-      // Cap the per-cycle batch fan-out to the most recent 100 batches
-      // so we don't hammer the LCD on mainnet (where batch counts grow
-      // unbounded). Older batches are retired less frequently and the
-      // agent will catch new retirement activity next cycle anyway.
-      const cappedBatches = batches.slice(0, 100);
-
-      const batchesWithSupply: BatchWithSupply[] = [];
-      await Promise.all(
-        cappedBatches.map(async (batch) => {
-          const supply = await ledger.getBatchSupply(batch.denom);
-          if (supply) {
-            batchesWithSupply.push({
-              batch,
-              supply,
-              classId: classIdFromBatchDenom(batch.denom),
-            });
-          }
-        })
-      );
-
-      return { classes, batchesWithSupply };
+      // Pull the most recent retirement transactions from the LCD
+      // tx-search endpoint. Each tx response can emit multiple
+      // MsgRetire events (batched retirements) — the ledger client
+      // flattens them into individual Retirement records.
+      const retirements = await ledger.getRecentRetirementTxs(200);
+      return { retirements };
     },
 
     async orient(obs: Observations): Promise<Orientation> {
-      const summariesByClass = new Map<string, RetirementSummary>();
-      const capturedAt = new Date().toISOString();
-
-      // Group batches by class so we can aggregate retired amounts.
-      const byClass = new Map<string, BatchWithSupply[]>();
-      for (const row of obs.batchesWithSupply) {
-        const bucket = byClass.get(row.classId) || [];
-        bucket.push(row);
-        byClass.set(row.classId, bucket);
-      }
-
-      for (const [classId, rows] of byClass) {
-        let totalRetired = 0;
-        let batchesWithRetirement = 0;
-        for (const row of rows) {
-          const retired = Number(row.supply.retired_amount);
-          if (Number.isFinite(retired) && retired > 0) {
-            totalRetired += retired;
-            batchesWithRetirement++;
-          }
-        }
-        if (totalRetired === 0) continue;
-
-        // Unique retirees / top retiree are placeholders until the
-        // tx-event source lands. The summary still tells the right
-        // story: "N batches in class X have retirements totaling Y".
-        const uniqueRetirees = batchesWithRetirement;
-        const topRetiree: string | null = null;
-        const topRetireeQuantity = 0;
-
-        // Treat USD value as 1:1 with quantity for the MVP. Price
-        // oracle integration is future work — documented as an open
-        // question in the workflow spec.
-        const totalValueUsd = totalRetired;
-        const demandIndex = computeDemandIndex(
-          totalRetired,
-          batchesWithRetirement,
-          uniqueRetirees
-        );
-
-        summariesByClass.set(classId, {
-          classId,
-          windowHours: config.market.retirementWindowHours,
-          retirementCount: batchesWithRetirement,
-          totalQuantity: totalRetired,
-          totalValueUsd,
-          uniqueRetirees,
-          topRetiree,
-          topRetireeQuantity,
-          pctWithJurisdiction: 0,
-          demandIndex,
-          capturedAt,
-        });
-      }
-
+      const summariesByClass = aggregateRetirementsByClass(obs.retirements);
       return { summariesByClass };
     },
 

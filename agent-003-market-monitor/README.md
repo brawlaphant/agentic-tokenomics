@@ -82,13 +82,21 @@ Thresholds live in `src/config.ts` under `market.*` and mirror the character def
 
 2. **Sell-order-as-trade proxy (MVP).** Until Ledger MCP exposes filled-trade events, the agent treats open sell orders as trade observations for the z-score baseline. An unusually high or low ask price is still a market structure signal worth surfacing, and the code path swaps cleanly when real trade events become available.
 
-3. **Batch supply delta as retirement source (MVP).** The MVP reads `retired_amount` from each batch supply and aggregates per class. A follow-up PR will plug in a real tx-stream client for `MsgRetire` once the LCD event endpoint is available.
+3. **MsgRetire tx-search as retirement source.** WF-MM-03 reads
+   recent retirement transactions from the Cosmos LCD `tx-search`
+   endpoint filtered on `message.action='/regen.ecocredit.v1.MsgRetire'`.
+   Each tx response is parsed into zero or more Retirement records
+   by harvesting `EventRetire` attributes (owner, batch_denom, amount,
+   jurisdiction, reason) from either `logs[].events[]` or the
+   flattened top-level `events[]` — the parser accepts both shapes
+   for cross-SDK compatibility. Earlier drafts used a batch-supply
+   delta as an MVP proxy; the current implementation produces
+   richer Retirement records with retiree identity and jurisdiction
+   metadata that the supply-delta proxy could not carry.
 
-4. **Batch fan-out capped at 100.** WF-MM-03 caps the per-cycle batch fan-out to the most recent 100 batches so the agent doesn't hammer the LCD on a mainnet with thousands of historical batches. New retirement activity lands in new batches and will be picked up next cycle.
+4. **Dedupe by trade + severity.** WF-MM-01 only alerts once per `(trade_id, severity)` tuple. A trade that later escalates from WARNING to CRITICAL still fires a new alert; a trade that stays at the same severity does not.
 
-5. **Dedupe by trade + severity.** WF-MM-01 only alerts once per `(trade_id, severity)` tuple. A trade that later escalates from WARNING to CRITICAL still fires a new alert; a trade that stays at the same severity does not.
-
-6. **Standalone over ElizaOS.** ElizaOS plugin API may change. A standalone process proves the workflow logic works independently of any runtime framework, matching AGENT-002's approach.
+5. **Standalone over ElizaOS.** ElizaOS plugin API may change. A standalone process proves the workflow logic works independently of any runtime framework, matching AGENT-002's approach.
 
 ## Governance layer
 
