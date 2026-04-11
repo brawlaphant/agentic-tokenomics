@@ -45,7 +45,7 @@ const result = computeM001Score({
 });
 ```
 
-**Schemas:** [`mechanisms/m001-enh-credit-class-approval/schemas/m001_proposal.schema.json`](../../mechanisms/m001-enh-credit-class-approval/schemas/m001_proposal.schema.json) and [`m001_agent_score.schema.json`](../../mechanisms/m001-enh-credit-class-approval/schemas/m001_agent_score.schema.json).
+**Schemas:** [`m001_proposal.schema.json`](../../mechanisms/m001-enh-credit-class-approval/schemas/m001_proposal.schema.json) and [`m001_agent_score.schema.json`](../../mechanisms/m001-enh-credit-class-approval/schemas/m001_agent_score.schema.json).
 
 ## 3. What you get back
 
