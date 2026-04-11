@@ -1867,6 +1867,13 @@ fn test_fee_router_to_dynamic_supply_burn_flow() {
     );
 
     // ── Step 2: Collect the fee for real ──────────────────────────
+    // Send the calculated fee as actual funds so an integrator reading
+    // this test sees the intended call shape: caller transfers the fee
+    // into the router and the router updates its pool accounting in
+    // lockstep. v0 m013 is an accounting-only contract (it does not yet
+    // compare `info.funds` against the calculated fee), but wiring the
+    // funds through the mock bank ensures the test fails closed the day
+    // m013 adds on-chain funds validation.
     app.execute_contract(
         admin.clone(),
         fr_addr.clone(),
@@ -1874,7 +1881,7 @@ fn test_fee_router_to_dynamic_supply_burn_flow() {
             tx_type: fee_router::msg::TxType::MarketplaceTrade,
             value: trade_value,
         },
-        &[],
+        &[Coin::new(calc.fee_amount.u128(), DENOM)],
     )
     .unwrap();
 
