@@ -1,0 +1,18 @@
+{
+  "_comment": "With factors={}, every scoring factor defaults to 0 so score=0. Confidence: only vintage_known passes (undefined !== false) → 1/7 → round(1/7 * 1000) = 143.",
+  "scores": [
+    {
+      "score": 0,
+      "confidence": 143,
+      "factors": {
+        "project_reputation": 0,
+        "class_reputation": 0,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 0
+      }
+    }
+  ]
+}

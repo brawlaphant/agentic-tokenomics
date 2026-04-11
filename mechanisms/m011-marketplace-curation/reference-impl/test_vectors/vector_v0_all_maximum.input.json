@@ -1,0 +1,31 @@
+{
+  "_comment": "Edge case: every factor at the 1000 ceiling with every flag true. Verifies the score and confidence ceilings.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "batches": [
+    {
+      "batch": {
+        "batch_denom": "EDGE-MAX-001",
+        "project_id": "P-regen-edge-max",
+        "class_id": "C",
+        "issuer": "regen1edgemax",
+        "seller": "regen1edgemaxseller"
+      },
+      "factors": {
+        "project_reputation": 1000,
+        "class_reputation": 1000,
+        "vintage_freshness": 1000,
+        "verification_recency": 1000,
+        "seller_reputation": 1000,
+        "price_fairness": 1000,
+        "additionality_confidence": 1000,
+        "project_reputation_available": true,
+        "class_reputation_available": true,
+        "seller_reputation_available": true,
+        "vintage_known": true,
+        "verification_date_known": true,
+        "price_data_available": true,
+        "methodology_available": true
+      }
+    }
+  ]
+}

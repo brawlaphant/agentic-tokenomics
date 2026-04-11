@@ -1,0 +1,16 @@
+{
+  "_comment": "Edge case: factors object is empty. Pins two behaviors at once: (1) every scoring factor defaults to 0 under nullish-coalescing, and (2) vintage_known defaults to 'available' because the confidence guard is `!== false` — unset passes.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "batches": [
+    {
+      "batch": {
+        "batch_denom": "EDGE-EMPTY-001",
+        "project_id": "P-regen-edge-empty",
+        "class_id": "C",
+        "issuer": "regen1edgeempty",
+        "seller": "regen1edgeemptyseller"
+      },
+      "factors": {}
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "_comment": "Edge case: every factor at 0 with every data-availability flag explicitly false, including vintage_known=false. Verifies the score floor at 0 and the absolute confidence floor at 0 (requires vintage_known=false to flip its `!== false` guard).",
+  "as_of": "2026-02-18T12:00:00Z",
+  "batches": [
+    {
+      "batch": {
+        "batch_denom": "EDGE-ZERO-001",
+        "project_id": "P-regen-edge-zero",
+        "class_id": "C",
+        "issuer": "regen1edgezero",
+        "seller": "regen1edgezeroseller"
+      },
+      "factors": {
+        "project_reputation": 0,
+        "class_reputation": 0,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 0,
+        "project_reputation_available": false,
+        "class_reputation_available": false,
+        "seller_reputation_available": false,
+        "vintage_known": false,
+        "verification_date_known": false,
+        "price_data_available": false,
+        "methodology_available": false
+      }
+    }
+  ]
+}

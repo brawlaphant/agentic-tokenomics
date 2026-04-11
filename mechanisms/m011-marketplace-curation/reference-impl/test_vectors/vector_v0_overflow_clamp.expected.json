@@ -1,0 +1,18 @@
+{
+  "_comment": "After clamping: project_reputation 1000, class_reputation 1000, vintage_freshness 0, verification_recency 1000, seller_reputation 0, price_fairness 1000, additionality_confidence 1000. 0.25*1000 + 0.20*1000 + 0.15*0 + 0.15*1000 + 0.10*0 + 0.10*1000 + 0.05*1000 = 250 + 200 + 0 + 150 + 0 + 100 + 50 = 750. Confidence = 7/7 = 1000.",
+  "scores": [
+    {
+      "score": 750,
+      "confidence": 1000,
+      "factors": {
+        "project_reputation": 1000,
+        "class_reputation": 1000,
+        "vintage_freshness": 0,
+        "verification_recency": 1000,
+        "seller_reputation": 0,
+        "price_fairness": 1000,
+        "additionality_confidence": 1000
+      }
+    }
+  ]
+}

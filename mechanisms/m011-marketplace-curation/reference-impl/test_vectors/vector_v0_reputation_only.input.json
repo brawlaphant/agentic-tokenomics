@@ -1,0 +1,31 @@
+{
+  "_comment": "Edge case: only project_reputation and class_reputation at ceiling; all other factors at 0. Isolates the top two weights (0.25 + 0.20 = 0.45) and verifies their combined contribution. Protects against a refactor that accidentally swaps the weights between factors.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "batches": [
+    {
+      "batch": {
+        "batch_denom": "EDGE-REP-001",
+        "project_id": "P-regen-edge-rep",
+        "class_id": "C",
+        "issuer": "regen1edgerep",
+        "seller": "regen1edgerepseller"
+      },
+      "factors": {
+        "project_reputation": 1000,
+        "class_reputation": 1000,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 0,
+        "project_reputation_available": true,
+        "class_reputation_available": true,
+        "seller_reputation_available": false,
+        "vintage_known": true,
+        "verification_date_known": false,
+        "price_data_available": false,
+        "methodology_available": false
+      }
+    }
+  ]
+}
