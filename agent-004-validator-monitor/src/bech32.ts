@@ -17,28 +17,45 @@ import { bech32 } from "bech32";
  * 100% and governance participation always showing 0.
  */
 
-const HRP_OPERATOR = "regenvaloper";
-const HRP_ACCOUNT = "regen";
 const HRP_CONS = "regenvalcons";
+const VALOPER_SUFFIX = "valoper";
 
-/** Re-encode a bech32 address under a different human-readable prefix. */
-function reencodeBech32(addr: string, newHrp: string): string | null {
+/**
+ * Convert an operator bech32 (e.g. `regenvaloper1…`) to the matching
+ * delegator bech32 (`regen1…`). Cosmos encodes both forms from the
+ * same 20-byte payload; only the HRP differs. The delegator prefix
+ * is the operator prefix with the trailing `"valoper"` stripped, so
+ * this helper works across chains — it produces `cosmos1…` for
+ * `cosmosvaloper1…`, `osmo1…` for `osmovaloper1…`, etc.
+ *
+ * Returns `null` when the input is not a valid bech32 string, or
+ * when its HRP does not end in `"valoper"`, or when stripping
+ * `"valoper"` would leave an empty prefix. Callers must guard
+ * against null — a missing conversion means the validator cannot
+ * be queried for votes and should degrade to a 0 governance score
+ * rather than crash the whole cycle.
+ */
+export function operatorToDelegator(operatorAddress: string): string | null {
   try {
-    const decoded = bech32.decode(addr);
-    return bech32.encode(newHrp, decoded.words);
+    const decoded = bech32.decode(operatorAddress);
+    if (!decoded.prefix.endsWith(VALOPER_SUFFIX)) return null;
+    const delegatorPrefix = decoded.prefix.slice(0, -VALOPER_SUFFIX.length);
+    if (!delegatorPrefix) return null;
+    return bech32.encode(delegatorPrefix, decoded.words);
   } catch {
     return null;
   }
 }
 
-/** Convert `regenvaloper1…` to the underlying `regen1…` delegator bech32. */
-export function operatorToDelegator(operatorAddress: string): string | null {
-  return reencodeBech32(operatorAddress, HRP_ACCOUNT);
-}
-
-/** Convert `regen1…` delegator bech32 back to the operator form. */
+/** Convert a `regen1…` delegator bech32 back to the `regenvaloper1…` form. */
 export function delegatorToOperator(delegatorAddress: string): string | null {
-  return reencodeBech32(delegatorAddress, HRP_OPERATOR);
+  try {
+    const decoded = bech32.decode(delegatorAddress);
+    if (decoded.prefix.endsWith(VALOPER_SUFFIX)) return null;
+    return bech32.encode(decoded.prefix + VALOPER_SUFFIX, decoded.words);
+  } catch {
+    return null;
+  }
 }
 
 /**

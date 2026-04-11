@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { bech32 } from "bech32";
-import { operatorToAccountBech32 } from "./performance-tracking.js";
+// The operator→delegator conversion used to live inside
+// performance-tracking.ts as `operatorToAccountBech32`. PR #81's
+// Gemini-review fix moved it (alongside the valcons derivation) into
+// `src/bech32.ts` under the clearer name `operatorToDelegator`. The
+// existing test body uses the old name as a local binding; we keep
+// that binding via an import alias so the assertions stay readable.
+import { operatorToDelegator as operatorToAccountBech32 } from "../bech32.js";
 
 // ============================================================
 // operatorToAccountBech32 — strip "valoper" from the HRP
