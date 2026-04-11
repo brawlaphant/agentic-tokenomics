@@ -13,17 +13,19 @@ The guides are complementary to:
 
 ## Index
 
-| Guide | Mechanism | Mechanism type | Status |
-|---|---|---|---|
-| [m001-enh.md](m001-enh.md) | Credit Class Approval Voting | Scoring (0-1000 composite, 3-way recommendation) | ✅ Written |
-| [m008.md](m008.md) | Data Attestation Bonding | Scoring (4-factor, no recommendation) | ✅ Written |
-| [m009.md](m009.md) | Service Provision Escrow | Dual-guard scoring (score AND confidence) | ✅ Written |
-| [m010.md](m010.md) | Reputation Signal | Event-driven decay-weighted average | ✅ Written |
-| [m012.md](m012.md) | Fixed Cap Dynamic Supply | Supply dynamics (BigInt arithmetic, phase-gated multipliers) | ✅ Written |
-| [m014.md](m014.md) | Authority Validator Governance | Validator performance (re-normalized weighted score) | ✅ Written |
-| m011.md | Marketplace Curation | 7-factor quality scoring + collections | ⏳ TODO |
-| m013.md | Value-Based Fee Routing | Fee computation + pool distribution | ⏳ TODO — follow m012 template |
-| m015.md | Contribution-Weighted Rewards | Stability + activity tiers | ⏳ TODO |
+| Guide | Mechanism | Mechanism type |
+|---|---|---|
+| [m001-enh.md](m001-enh.md) | Credit Class Approval Voting | Scoring (0-1000 composite, 3-way recommendation) |
+| [m008.md](m008.md) | Data Attestation Bonding | Scoring (4-factor, no recommendation) |
+| [m009.md](m009.md) | Service Provision Escrow | Dual-guard scoring (score AND confidence) |
+| [m010.md](m010.md) | Reputation Signal | Event-driven decay-weighted average |
+| [m011.md](m011.md) | Marketplace Curation | 7-factor quality scoring + collections |
+| [m012.md](m012.md) | Fixed Cap Dynamic Supply | Supply dynamics (BigInt arithmetic, phase-gated multipliers) |
+| [m013.md](m013.md) | Value-Based Fee Routing | Fee computation + pool distribution with Fee Conservation |
+| [m014.md](m014.md) | Authority Validator Governance | Validator performance (re-normalized weighted score) |
+| [m015.md](m015.md) | Contribution-Weighted Rewards | Activity score + stability tier allocation |
+
+**All 9 mechanism guides are written.** Future additions (new mechanisms, upgraded versions of existing mechanisms) should follow the same five-section template.
 
 ## Guide structure
 
