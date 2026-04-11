@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Rust contracts: test, build wasm, lint ──────────────────────────
+  contracts:
+    name: Contracts (Rust)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+
+      - name: Cache cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: contracts-${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: |
+            contracts-${{ runner.os }}-cargo-
+
+      - name: Run tests
+        run: cargo test --workspace
+
+      - name: Build wasm
+        run: cargo build --release --target wasm32-unknown-unknown --workspace
+
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+  # ── TypeScript agents: typecheck ────────────────────────────────────
+  agents:
+    name: Agents (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install agents/ dependencies
+        working-directory: agents
+        run: npm ci
+
+      - name: Typecheck agents/
+        working-directory: agents
+        run: npx tsc --noEmit
+
+      - name: Install agent-002-governance-analyst/ dependencies
+        working-directory: agent-002-governance-analyst
+        run: npm ci
+
+      - name: Typecheck agent-002-governance-analyst/
+        working-directory: agent-002-governance-analyst
+        run: npx tsc --noEmit
+
+  # ── Spec verification: schemas, reference impls, datasets ───────────
+  verify-specs:
+    name: Verify Specs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Run verify script
+        run: node scripts/verify.mjs

@@ -1,0 +1,103 @@
+name: WASM Size Report
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wasm-size:
+    name: Report WASM Binary Sizes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: wasm-size-${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: |
+            wasm-size-${{ runner.os }}-cargo-
+
+      - name: Build wasm release
+        run: cargo build --release --target wasm32-unknown-unknown --workspace
+
+      - name: Collect binary sizes
+        id: sizes
+        run: |
+          WASM_DIR="target/wasm32-unknown-unknown/release"
+          {
+            echo "report<<WASM_EOF"
+            echo "| Contract | Size |"
+            echo "|----------|------|"
+            for wasm in "$WASM_DIR"/*.wasm; do
+              [ -f "$wasm" ] || continue
+              name="$(basename "$wasm" .wasm)"
+              # Skip build-script and dep artifacts (contain hyphens followed by hex)
+              echo "$name" | grep -qE '^[a-f0-9]{16}' && continue
+              size_bytes="$(wc -c < "$wasm")"
+              if [ "$size_bytes" -ge 1048576 ]; then
+                size="$(awk "BEGIN {printf \"%.2f MiB\", $size_bytes/1048576}")"
+              else
+                size="$(awk "BEGIN {printf \"%.1f KiB\", $size_bytes/1024}")"
+              fi
+              echo "| \`$name\` | $size |"
+            done
+            echo "WASM_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- wasm-size-report -->';
+            const body = [
+              marker,
+              '## WASM Binary Sizes',
+              '',
+              '${{ steps.sizes.outputs.report }}',
+              '',
+              `_Built from \`${context.sha.slice(0, 8)}\` on \`${context.ref.replace('refs/heads/', '')}\`_`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

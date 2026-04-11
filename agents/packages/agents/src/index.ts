@@ -2,7 +2,8 @@
  * Agent Entrypoint
  *
  * Bootstraps an ElizaOS agent runtime with the selected character
- * and Regen MCP plugins. Selected via AGENT_CHARACTER env var.
+ * and Regen MCP plugins. Falls back to standalone OODA loop mode
+ * when ElizaOS is not installed.
  *
  * Usage:
  *   AGENT_CHARACTER=governance-analyst tsx packages/agents/src/index.ts
@@ -19,12 +20,123 @@ import { registryReviewerCharacter } from "./characters/registry-reviewer.js";
 import { marketMonitorCharacter } from "./characters/market-monitor.js";
 import { validatorMonitorCharacter } from "./characters/validator-monitor.js";
 
-const CHARACTERS: Record<string, unknown> = {
+const CHARACTERS: Record<string, any> = {
   "governance-analyst": governanceAnalystCharacter,
   "registry-reviewer": registryReviewerCharacter,
   "market-monitor": marketMonitorCharacter,
   "validator-monitor": validatorMonitorCharacter,
 };
+
+async function verifyMcpConnections(
+  ledgerClient: LedgerMCPClient,
+  koiClient: KOIMCPClient
+): Promise<{ ledger: boolean; koi: boolean }> {
+  const result = { ledger: false, koi: false };
+
+  try {
+    await ledgerClient.listProposals({ limit: 1 });
+    console.log("[Ledger MCP] Connected.");
+    result.ledger = true;
+  } catch (err) {
+    console.log(
+      `[Ledger MCP] Not available (${(err as Error).message}). ` +
+        "This is expected if the MCP server isn't running locally."
+    );
+  }
+
+  try {
+    await koiClient.search({ query: "regen governance", limit: 1 });
+    console.log("[KOI MCP] Connected.");
+    result.koi = true;
+  } catch (err) {
+    console.log(
+      `[KOI MCP] Not available (${(err as Error).message}). ` +
+        "This is expected if the MCP server isn't running locally."
+    );
+  }
+
+  return result;
+}
+
+async function bootstrapElizaOS(
+  character: any,
+  config: ReturnType<typeof loadConfig>,
+  ledgerClient: LedgerMCPClient,
+  koiClient: KOIMCPClient
+): Promise<void> {
+  // Dynamic import -- only resolves if @elizaos/core is installed.
+  // Cast to any because @elizaos/core v1.7 has a moduleResolution quirk
+  // where ./runtime re-export doesn't resolve under NodeNext. The class
+  // exists at runtime; this cast is safe.
+  const elizaCore: any = await import("@elizaos/core");
+  const AgentRuntime = elizaCore.AgentRuntime as any;
+
+  // Import plugin objects from our MCP packages
+  const { ledgerMcpPlugin } = await import(
+    "@regen/plugin-ledger-mcp"
+  );
+  const { koiMcpPlugin } = await import("@regen/plugin-koi-mcp");
+
+  // Initialize the plugins with MCP client instances
+  ledgerMcpPlugin._setClient(ledgerClient);
+  koiMcpPlugin._setClient(koiClient);
+
+  // ElizaOS v1.6.3 AgentRuntime constructor:
+  //   { character?, plugins?, adapter?, settings?, agentId?, fetch? }
+  // API key goes through character.settings.secrets or runtime settings.
+  const runtime = new AgentRuntime({
+    character: {
+      ...character,
+      settings: {
+        ...character.settings,
+        secrets: {
+          ...character.settings?.secrets,
+          ANTHROPIC_API_KEY: config.anthropicApiKey,
+        },
+      },
+    },
+    plugins: [ledgerMcpPlugin as any, koiMcpPlugin as any],
+    settings: {
+      ANTHROPIC_API_KEY: config.anthropicApiKey,
+    } as any,
+  });
+
+  await runtime.initialize();
+
+  console.log("[ElizaOS] Runtime initialized successfully.");
+  console.log(
+    `[ElizaOS] Plugins loaded: ${[ledgerMcpPlugin.name, koiMcpPlugin.name].join(", ")}`
+  );
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    console.log("\n[ElizaOS] Shutting down...");
+    try {
+      if (typeof (runtime as any).close === "function") {
+        await (runtime as any).close();
+      }
+    } catch {
+      // best-effort cleanup
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+
+  // Keep process alive -- the runtime manages its own event loop
+  console.log("[ElizaOS] Runtime running. Press Ctrl+C to stop.");
+}
+
+async function bootstrapStandalone(
+  characterName: string,
+  config: ReturnType<typeof loadConfig>,
+  ledgerClient: LedgerMCPClient,
+  koiClient: KOIMCPClient
+): Promise<void> {
+  const { runStandalone } = await import("./standalone.js");
+  await runStandalone(characterName, config, ledgerClient, koiClient);
+}
 
 async function main() {
   const config = loadConfig();
@@ -50,74 +162,46 @@ async function main() {
   });
 
   console.log(`
-╔══════════════════════════════════════════════════════════╗
-║          Regen Agentic Tokenomics - Agent Runtime        ║
-╠══════════════════════════════════════════════════════════╣
-║  Character:   ${characterName.padEnd(41)}║
-║  Ledger MCP:  ${config.ledgerMcp.baseUrl.padEnd(41)}║
-║  KOI MCP:     ${config.koiMcp.baseUrl.padEnd(41)}║
-╚══════════════════════════════════════════════════════════╝
+\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
+\u2551          Regen Agentic Tokenomics - Agent Runtime        \u2551
+\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563
+\u2551  Character:   ${characterName.padEnd(41)}\u2551
+\u2551  Ledger MCP:  ${config.ledgerMcp.baseUrl.padEnd(41)}\u2551
+\u2551  KOI MCP:     ${config.koiMcp.baseUrl.padEnd(41)}\u2551
+\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d
 `);
 
-  // ---------------------------------------------------------------
-  // ElizaOS Runtime Bootstrap
-  //
-  // This is where you'd wire up the full ElizaOS runtime:
-  //
-  //   import { AgentRuntime } from "@elizaos/core";
-  //   import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
-  //
-  //   const runtime = new AgentRuntime({
-  //     character,
-  //     token: config.anthropicApiKey,
-  //     modelProvider: "anthropic",
-  //     plugins: [bootstrapPlugin, ledgerPlugin, koiPlugin],
-  //     databaseAdapter: db,
-  //     cacheManager: cache,
-  //   });
-  //   await runtime.initialize();
-  //
-  // For now, we verify the MCP connections and demonstrate the
-  // agent's core capability: analyzing a governance proposal.
-  // ---------------------------------------------------------------
-
+  // Verify MCP connections before any runtime bootstrap
   console.log("Verifying MCP connections...\n");
+  await verifyMcpConnections(ledgerClient, koiClient);
+  console.log();
 
-  // Test Ledger MCP
+  // Attempt ElizaOS runtime; fall back to standalone OODA loop
   try {
-    const proposals = await ledgerClient.listProposals({ limit: 1 });
-    console.log(
-      "[Ledger MCP] Connected. Sample response:",
-      JSON.stringify(proposals, null, 2).substring(0, 200)
-    );
+    await bootstrapElizaOS(character, config, ledgerClient, koiClient);
   } catch (err) {
-    console.log(
-      `[Ledger MCP] Not available (${(err as Error).message}). ` +
-        "This is expected if the MCP server isn't running locally."
-    );
-  }
+    const isModuleNotFound =
+      err instanceof Error &&
+      (err.message.includes("Cannot find module") ||
+        err.message.includes("Cannot find package") ||
+        err.message.includes("MODULE_NOT_FOUND") ||
+        err.message.includes("ERR_MODULE_NOT_FOUND"));
 
-  // Test KOI MCP
-  try {
-    const results = await koiClient.search({
-      query: "regen governance",
-      limit: 1,
-    });
-    console.log(
-      "[KOI MCP] Connected. Sample response:",
-      JSON.stringify(results, null, 2).substring(0, 200)
-    );
-  } catch (err) {
-    console.log(
-      `[KOI MCP] Not available (${(err as Error).message}). ` +
-        "This is expected if the MCP server isn't running locally."
-    );
+    if (isModuleNotFound) {
+      console.log(
+        "[ElizaOS] @elizaos/core not installed. Falling back to standalone OODA mode.\n" +
+          "  To enable ElizaOS runtime: npm install @elizaos/core\n"
+      );
+      await bootstrapStandalone(
+        characterName,
+        config,
+        ledgerClient,
+        koiClient
+      );
+    } else {
+      throw err;
+    }
   }
-
-  console.log("\nAgent scaffold initialized successfully.");
-  console.log(
-    "To run with full ElizaOS runtime, install @elizaos/core and uncomment the bootstrap section above."
-  );
 }
 
 main().catch((err) => {

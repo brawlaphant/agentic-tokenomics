@@ -1,0 +1,20 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+[dev-dependencies]
+cosmwasm-std = { workspace = true }
+cw-multi-test = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+attestation-bonding = { path = "../attestation-bonding", features = ["library"] }
+credit-class-voting = { path = "../credit-class-voting", features = ["library"] }
+marketplace-curation = { path = "../marketplace-curation", features = ["library"] }
+service-escrow = { path = "../service-escrow", features = ["library"] }
+contribution-rewards = { path = "../contribution-rewards", features = ["library"] }
+validator-governance = { path = "../validator-governance", features = ["library"] }
