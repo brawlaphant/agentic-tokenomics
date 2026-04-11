@@ -332,4 +332,14 @@ export class Store {
   }
 }
 
-export const store = new Store();
+// Lazy singleton: the Store is only constructed on first access, so
+// test files that import a workflow module for its exported helpers
+// do not open the SQLite DB as a side effect of the import graph. The
+// workflow code itself keeps calling `store.x()` as before.
+let _store: Store | null = null;
+export const store: Store = new Proxy({} as Store, {
+  get(_target, prop) {
+    if (_store === null) _store = new Store();
+    return Reflect.get(_store, prop, _store);
+  },
+}) as Store;
