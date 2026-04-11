@@ -166,9 +166,22 @@ if (isMain) {
         pass = false;
         continue;
       }
-      if (r.score !== e.score) {
+      const confidenceMatch =
+        e.confidence === undefined || r.confidence === e.confidence;
+      const factorsMatch =
+        e.factors === undefined ||
+        JSON.stringify(r.factors) === JSON.stringify(e.factors);
+      if (r.score !== e.score || !confidenceMatch || !factorsMatch) {
         console.error(
-          `FAIL ${name}[${i}]: got score=${r.score}, expected score=${e.score}`
+          `FAIL ${name}[${i}]: got ${JSON.stringify({
+            score: r.score,
+            confidence: r.confidence,
+            factors: r.factors,
+          })}, expected ${JSON.stringify({
+            score: e.score,
+            confidence: e.confidence,
+            factors: e.factors,
+          })}`
         );
         pass = false;
       } else {
