@@ -1,0 +1,24 @@
+[package]
+name = "fee-router"
+version = "0.1.0"
+edition = "2021"
+description = "M013 Value-Based Fee Routing CosmWasm contract for Regen Network"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Use library feature to disable entry points when imported as dependency
+library = []
+
+[dependencies]
+cosmwasm-std = "2.2"
+cosmwasm-schema = "2.2"
+cw-storage-plus = "2.0"
+schemars = "0.8"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+thiserror = "2"
+
+[dev-dependencies]
+cosmwasm-std = { version = "2.2", features = ["staking"] }
