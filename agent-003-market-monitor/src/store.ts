@@ -82,6 +82,17 @@ class Store {
         captured_at TEXT NOT NULL
       );
 
+      -- Per-batch retirement snapshot. WF-MM-03 reads the previous
+      -- retired_amount from this table and compares it against the
+      -- freshly observed value to derive a per-cycle retirement delta
+      -- (what actually moved since last run), rather than treating the
+      -- cumulative on-chain retired_amount as demand.
+      CREATE TABLE IF NOT EXISTS batch_retirement_state (
+        batch_denom TEXT PRIMARY KEY,
+        retired_amount REAL NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_trade_class ON trade_observations(class_id);
       CREATE INDEX IF NOT EXISTS idx_trade_batch ON trade_observations(batch_denom);
       CREATE INDEX IF NOT EXISTS idx_trade_executed ON trade_observations(executed_at);
@@ -230,6 +241,50 @@ class Store {
         row.summary,
         new Date().toISOString()
       );
+  }
+
+  // ── Per-batch retirement state (cumulative → delta) ───────
+
+  getPreviousRetiredAmount(batchDenom: string): number | null {
+    const row = this.db
+      .prepare(
+        `SELECT retired_amount FROM batch_retirement_state WHERE batch_denom = ?`
+      )
+      .get(batchDenom) as { retired_amount: number } | undefined;
+    return row ? row.retired_amount : null;
+  }
+
+  upsertRetiredAmount(batchDenom: string, retiredAmount: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO batch_retirement_state (batch_denom, retired_amount, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(batch_denom) DO UPDATE SET
+           retired_amount = excluded.retired_amount,
+           updated_at = excluded.updated_at`
+      )
+      .run(batchDenom, retiredAmount, new Date().toISOString());
+  }
+
+  /** Latest median ask price for a class, pulled from the most recent
+   * liquidity snapshot. Used by WF-MM-03 to value retirement volume in
+   * USD rather than treating quantity as 1:1 with USD. Returns null if
+   * no snapshot exists yet. */
+  getLatestMedianAsk(classId: string): number | null {
+    const row = this.db
+      .prepare(
+        `SELECT snapshot FROM liquidity_snapshots
+         WHERE class_id = ? ORDER BY id DESC LIMIT 1`
+      )
+      .get(classId) as { snapshot: string } | undefined;
+    if (!row) return null;
+    try {
+      const parsed = JSON.parse(row.snapshot) as { medianAskUsd?: number };
+      const m = parsed.medianAskUsd;
+      return typeof m === "number" && m > 0 ? m : null;
+    } catch {
+      return null;
+    }
   }
 
   getBaselineDemand(classId: string, lookbackDays: number): number {

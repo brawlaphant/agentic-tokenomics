@@ -61,12 +61,12 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   const ask = Number(order.ask_amount);
   if (!Number.isFinite(qty) || !Number.isFinite(ask) || qty <= 0) return null;
 
-  // ask_amount is in the smallest unit of ask_denom. For the MVP we
-  // treat it as already-USD when denom is a USD stablecoin and pass a
-  // 1.0 conversion otherwise. Downstream code can plug in a real
-  // price oracle.
-  const usdPerAskUnit = isUsdStableDenom(order.ask_denom) ? 1 : 1;
-  const pricePerCredit = (ask * usdPerAskUnit) / qty;
+  // Only USD stablecoin asks are priced — anything else would require
+  // an oracle we don't have yet, and letting non-USD orders into the
+  // baseline would pollute the class/batch medians with 1:1-priced
+  // garbage. Downstream code can plug in a real price oracle.
+  if (!isUsdStableDenom(order.ask_denom)) return null;
+  const pricePerCredit = ask / qty;
 
   return {
     id: order.id,
@@ -166,7 +166,11 @@ export function createPriceAnomalyDetectionWorkflow(
         const classMedian = median(classSamples);
         const classMean = classSamples.reduce((a, b) => a + b, 0) / classSamples.length;
         const classStd = stddev(classSamples, classMean);
-        const zClass = classStd > 0 ? (trade.pricePerCredit - classMedian) / classStd : 0;
+        // Z-score is (value − mean) / stddev. Using the median in the
+        // numerator while dividing by stddev (which is computed off the
+        // mean) is statistically inconsistent. Medians are still
+        // published in the alert payload as a context signal.
+        const zClass = classStd > 0 ? (trade.pricePerCredit - classMean) / classStd : 0;
 
         const batchMedian = batchSamples.length > 0 ? median(batchSamples) : classMedian;
         const batchMean =
@@ -174,7 +178,7 @@ export function createPriceAnomalyDetectionWorkflow(
             ? batchSamples.reduce((a, b) => a + b, 0) / batchSamples.length
             : classMean;
         const batchStd = batchSamples.length > 1 ? stddev(batchSamples, batchMean) : classStd;
-        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMedian) / batchStd : 0;
+        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMean) / batchStd : 0;
 
         const severity = classifyAnomaly(zClass, zBatch);
         if (severity === "INFO") continue;

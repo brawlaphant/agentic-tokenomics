@@ -24,13 +24,35 @@ export class LedgerClient {
   // ── Credit Classes ─────────────────────────────────────────
 
   async getCreditClasses(): Promise<CreditClass[]> {
-    const params = new URLSearchParams();
-    params.set("pagination.limit", "200");
+    // Walk every page of the `/regen/ecocredit/v1/classes` endpoint so
+    // the agent keeps monitoring new credit classes as the registry
+    // grows. A hardcoded limit of 200 would silently drop classes
+    // created after that ceiling, which is exactly the kind of blind
+    // spot this agent is supposed to prevent.
+    const pageSize = 200;
+    const classes: CreditClass[] = [];
+    let nextKey: string | null = null;
+    // Cap total pages as a safety belt against runaway pagination.
+    const MAX_PAGES = 25;
+    for (let i = 0; i < MAX_PAGES; i++) {
+      const params = new URLSearchParams();
+      params.set("pagination.limit", String(pageSize));
+      if (nextKey) params.set("pagination.key", nextKey);
 
-    const data = await this.get(
-      `/regen/ecocredit/v1/classes?${params.toString()}`
-    );
-    return (data.classes || []) as CreditClass[];
+      const data = await this.get(
+        `/regen/ecocredit/v1/classes?${params.toString()}`
+      );
+      const pageClasses = (data.classes || []) as CreditClass[];
+      classes.push(...pageClasses);
+
+      const pagination = data.pagination as
+        | { next_key?: string | null }
+        | undefined;
+      const rawKey = pagination?.next_key;
+      if (!rawKey) break;
+      nextKey = rawKey;
+    }
+    return classes;
   }
 
   async getCreditClass(classId: string): Promise<CreditClass | null> {

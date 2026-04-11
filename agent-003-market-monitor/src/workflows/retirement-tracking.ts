@@ -101,19 +101,27 @@ export function createRetirementTrackingWorkflow(
       // agent will catch new retirement activity next cycle anyway.
       const cappedBatches = batches.slice(0, 100);
 
+      // Limit concurrency to 5 in-flight LCD requests at a time.
+      // `Promise.all(cappedBatches.map(...))` fires 100 concurrent
+      // requests and will trip rate limits on public LCD endpoints.
       const batchesWithSupply: BatchWithSupply[] = [];
-      await Promise.all(
-        cappedBatches.map(async (batch) => {
-          const supply = await ledger.getBatchSupply(batch.denom);
-          if (supply) {
-            batchesWithSupply.push({
-              batch,
-              supply,
-              classId: classIdFromBatchDenom(batch.denom),
-            });
-          }
-        })
-      );
+      const CONCURRENCY = 5;
+      for (let i = 0; i < cappedBatches.length; i += CONCURRENCY) {
+        const chunk = cappedBatches.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          chunk.map(async (batch) => {
+            const supply = await ledger.getBatchSupply(batch.denom);
+            return supply
+              ? {
+                  batch,
+                  supply,
+                  classId: classIdFromBatchDenom(batch.denom),
+                }
+              : null;
+          })
+        );
+        for (const r of results) if (r) batchesWithSupply.push(r);
+      }
 
       return { classes, batchesWithSupply };
     },
@@ -131,16 +139,38 @@ export function createRetirementTrackingWorkflow(
       }
 
       for (const [classId, rows] of byClass) {
-        let totalRetired = 0;
+        // Per-batch delta: compare the currently observed cumulative
+        // retired_amount against the previously stored value and sum
+        // the positive deltas. That's the actual retirement activity
+        // that moved this cycle, rather than the cumulative total
+        // (which would fluctuate based on which batches fall into the
+        // top 100 and would over-report for newly-observed batches).
+        let totalRetiredDelta = 0;
         let batchesWithRetirement = 0;
         for (const row of rows) {
-          const retired = Number(row.supply.retired_amount);
-          if (Number.isFinite(retired) && retired > 0) {
-            totalRetired += retired;
+          const currentRetired = Number(row.supply.retired_amount);
+          if (!Number.isFinite(currentRetired) || currentRetired < 0) continue;
+
+          const previous = store.getPreviousRetiredAmount(row.batch.denom);
+          // If we have no prior observation, treat this as the
+          // baseline read — record it but do not count it toward this
+          // cycle's delta (no basis to know what moved *this* cycle).
+          if (previous === null) {
+            store.upsertRetiredAmount(row.batch.denom, currentRetired);
+            continue;
+          }
+
+          const delta = currentRetired - previous;
+          if (delta > 0) {
+            totalRetiredDelta += delta;
             batchesWithRetirement++;
           }
+          // Persist the new cumulative value so the next cycle sees
+          // today's read as the baseline. Always update, even if
+          // delta === 0, to advance the updated_at timestamp.
+          store.upsertRetiredAmount(row.batch.denom, currentRetired);
         }
-        if (totalRetired === 0) continue;
+        if (totalRetiredDelta === 0) continue;
 
         // Unique retirees / top retiree are placeholders until the
         // tx-event source lands. The summary still tells the right
@@ -149,12 +179,14 @@ export function createRetirementTrackingWorkflow(
         const topRetiree: string | null = null;
         const topRetireeQuantity = 0;
 
-        // Treat USD value as 1:1 with quantity for the MVP. Price
-        // oracle integration is future work — documented as an open
-        // question in the workflow spec.
-        const totalValueUsd = totalRetired;
+        // Price retirement volume using the most recent median ask
+        // price from WF-MM-02's liquidity snapshot for this class.
+        // Falls back to 1:1 when no snapshot exists yet (first run).
+        const medianAsk = store.getLatestMedianAsk(classId);
+        const totalValueUsd =
+          medianAsk !== null ? totalRetiredDelta * medianAsk : totalRetiredDelta;
         const demandIndex = computeDemandIndex(
-          totalRetired,
+          totalRetiredDelta,
           batchesWithRetirement,
           uniqueRetirees
         );
@@ -163,7 +195,7 @@ export function createRetirementTrackingWorkflow(
           classId,
           windowHours: config.market.retirementWindowHours,
           retirementCount: batchesWithRetirement,
-          totalQuantity: totalRetired,
+          totalQuantity: totalRetiredDelta,
           totalValueUsd,
           uniqueRetirees,
           topRetiree,
