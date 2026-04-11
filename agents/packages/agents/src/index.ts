@@ -7,6 +7,8 @@
  * Usage:
  *   AGENT_CHARACTER=governance-analyst tsx packages/agents/src/index.ts
  *   AGENT_CHARACTER=registry-reviewer tsx packages/agents/src/index.ts
+ *   AGENT_CHARACTER=market-monitor    tsx packages/agents/src/index.ts
+ *   AGENT_CHARACTER=validator-monitor  tsx packages/agents/src/index.ts
  */
 
 import { loadConfig } from "@regen/core";
@@ -14,10 +16,14 @@ import { LedgerMCPClient } from "@regen/plugin-ledger-mcp";
 import { KOIMCPClient } from "@regen/plugin-koi-mcp";
 import { governanceAnalystCharacter } from "./characters/governance-analyst.js";
 import { registryReviewerCharacter } from "./characters/registry-reviewer.js";
+import { marketMonitorCharacter } from "./characters/market-monitor.js";
+import { validatorMonitorCharacter } from "./characters/validator-monitor.js";
 
 const CHARACTERS: Record<string, unknown> = {
   "governance-analyst": governanceAnalystCharacter,
   "registry-reviewer": registryReviewerCharacter,
+  "market-monitor": marketMonitorCharacter,
+  "validator-monitor": validatorMonitorCharacter,
 };
 
 async function main() {

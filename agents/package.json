@@ -16,7 +16,9 @@
     "lint": "tsc --build --noEmit",
     "start": "tsx packages/agents/src/index.ts",
     "start:governance": "AGENT_CHARACTER=governance-analyst tsx packages/agents/src/index.ts",
-    "start:registry": "AGENT_CHARACTER=registry-reviewer tsx packages/agents/src/index.ts"
+    "start:registry": "AGENT_CHARACTER=registry-reviewer tsx packages/agents/src/index.ts",
+    "start:market": "AGENT_CHARACTER=market-monitor tsx packages/agents/src/index.ts",
+    "start:validator": "AGENT_CHARACTER=validator-monitor tsx packages/agents/src/index.ts"
   },
   "dependencies": {
     "@elizaos/core": "^1.6.3"
