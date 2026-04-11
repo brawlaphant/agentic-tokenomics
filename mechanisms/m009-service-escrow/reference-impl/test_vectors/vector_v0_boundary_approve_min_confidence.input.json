@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: score lands exactly on 700 with confidence exactly on 750 (3 of 4 flags true). Pins that APPROVE fires when BOTH conditions are met at equality. Flags chosen: reputation_available, iri_resolvable, has_prior_milestones = true; spec_available = false.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "milestones": [
+    {
+      "milestone": {
+        "milestone_id": "edge-approve-700",
+        "escrow_id": "escrow-edge-001",
+        "provider": "regen1edgeapprove",
+        "amount": { "amount": "1000", "denom": "uregen" }
+      },
+      "factors": {
+        "deliverable_quality": 700,
+        "evidence_completeness": 700,
+        "milestone_consistency": 700,
+        "provider_reputation": 700,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_milestones": true,
+        "spec_available": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": "0.40*400 + 0.25*400 + 0.20*400 + 0.15*400 = 160 + 100 + 80 + 60 = 400. NOT strictly less than 400 (so not FLAG) and NOT >= 700 (so not APPROVE), falls through to NEEDS_REVISION. Confidence = 4/4 = 1000.",
+  "scores": [
+    {
+      "score": 400,
+      "confidence": 1000,
+      "recommendation": "NEEDS_REVISION",
+      "factors": {
+        "deliverable_quality": 400,
+        "evidence_completeness": 400,
+        "milestone_consistency": 400,
+        "provider_reputation": 400
+      }
+    }
+  ]
+}

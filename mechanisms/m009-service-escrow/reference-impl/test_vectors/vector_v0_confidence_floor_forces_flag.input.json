@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: high score (800) but ZERO confidence flags. Confidence is 0, which is below the 250 FLAG_FOR_CLIENT confidence floor. Pins that the confidence guard in FLAG fires even when the score is well above the approval threshold — protects the client from an agent approving a high-scoring but unverifiable deliverable.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "milestones": [
+    {
+      "milestone": {
+        "milestone_id": "edge-confidence-floor-flag",
+        "escrow_id": "escrow-edge-005",
+        "provider": "regen1edgeconfloor",
+        "amount": { "amount": "3000", "denom": "uregen" }
+      },
+      "factors": {
+        "deliverable_quality": 800,
+        "evidence_completeness": 800,
+        "milestone_consistency": 800,
+        "provider_reputation": 800,
+        "reputation_available": false,
+        "iri_resolvable": false,
+        "has_prior_milestones": false,
+        "spec_available": false
+      }
+    }
+  ]
+}
