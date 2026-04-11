@@ -78,6 +78,14 @@ fn dynamic_supply_contract() -> Box<dyn Contract<Empty>> {
     ))
 }
 
+fn reputation_signal_contract() -> Box<dyn Contract<Empty>> {
+    Box::new(ContractWrapper::new(
+        reputation_signal::contract::execute,
+        reputation_signal::contract::instantiate,
+        reputation_signal::contract::query,
+    ))
+}
+
 // ── App builder helper ────────────────────────────────────────────────
 
 /// Build an App with initial balances for the given addresses.
@@ -1958,4 +1966,188 @@ fn test_fee_router_to_dynamic_supply_burn_flow() {
     let expected_supply = state_before.current_supply + state_after.total_minted
         - state_after.total_burned;
     assert_eq!(state_after.current_supply, expected_supply);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Test 7: Reputation Signal coexistence with Marketplace Curation
+//         (M010 + M011)
+// ═══════════════════════════════════════════════════════════════════════
+//
+// This test exercises the M010 reputation-signal lifecycle end-to-end
+// in the same App as marketplace-curation (M011). The two mechanisms
+// are conceptually coupled — m011's SPEC §5 names m010 as the data
+// source for `project_reputation`, `class_reputation`, and
+// `seller_reputation` — but they do NOT message each other on-chain
+// in the v0 design. The integration story is that an off-chain
+// curation agent reads the reputation score from m010 and supplies it
+// as a factor value when it calls m011's curation workflow.
+//
+// What this test pins:
+//
+// 1. Both contracts can coexist in the same App without state or type
+//    collisions — a workspace-level sanity check that was not possible
+//    until reputation-signal was added to the workspace members list
+//    (see the CI fix PR that wired the three orphaned contracts in).
+//
+// 2. The m010 signal lifecycle actually reaches the Active state
+//    inside cw-multi-test. Submit → advance time past the activation
+//    delay → Activate → query ReputationScore. Pins the happy-path
+//    timing invariants: a signal before activation does not
+//    contribute, a signal after activation does.
+//
+// 3. The ReputationScoreResponse shape is usable by an off-chain
+//    curation agent. The response includes `score` (0..1000),
+//    `contributing_signals`, and `total_signals` — exactly the three
+//    numbers an agent needs to decide whether to trust the signal.
+//
+// This is NOT a cross-contract MESSAGE flow — the curation contract
+// still takes a pre-computed quality score as input in v0. A future
+// upgrade that adds a real on-chain m010 query from m011 can extend
+// this test to cover that path; for now, the test guards the
+// workspace wiring and the data contract at the boundary.
+
+#[test]
+fn test_reputation_signal_coexistence_with_curation() {
+    let admin = addr("admin");
+    let community = addr("community");
+    let signaler = addr("signaler");
+    let project_admin = addr("project_admin");
+    let curator = addr("curator");
+
+    let mut app = build_app(&[
+        (&admin, 10_000_000_000),
+        (&signaler, 10_000_000_000),
+        (&curator, 10_000_000_000),
+    ]);
+
+    // ── Deploy reputation-signal (M010) ───────────────────────────
+    let rs_code_id = app.store_code(reputation_signal_contract());
+    let rs_addr = app
+        .instantiate_contract(
+            rs_code_id,
+            admin.clone(),
+            &reputation_signal::msg::InstantiateMsg {
+                admin: admin.to_string(),
+                activation_delay_seconds: Some(100),
+                challenge_window_seconds: Some(15_552_000),
+                resolution_deadline_seconds: Some(1_209_600),
+                challenge_bond_denom: Some(DENOM.to_string()),
+                challenge_bond_amount: Some(cosmwasm_std::Uint128::zero()),
+                decay_half_life_seconds: Some(1_209_600),
+                default_min_stake: Some(cosmwasm_std::Uint128::zero()),
+            },
+            &[],
+            "reputation-signal",
+            None,
+        )
+        .unwrap();
+
+    // ── Deploy marketplace-curation (M011) alongside ──────────────
+    // If the two contracts cannot coexist in the same App, deploy
+    // ordering would fail here — the check is worth running even
+    // though the two do not call each other on-chain.
+    let mc_code_id = app.store_code(marketplace_curation_contract());
+    let _mc_addr = app
+        .instantiate_contract(
+            mc_code_id,
+            admin.clone(),
+            &marketplace_curation::msg::InstantiateMsg {
+                community_pool: community.to_string(),
+                min_curation_bond: Some(Uint128::new(1_000_000_000)),
+                curation_fee_rate_bps: Some(50),
+                challenge_deposit: Some(Uint128::new(100_000_000)),
+                slash_percentage_bps: Some(2000),
+                activation_delay_seconds: Some(100),
+                unbonding_period_seconds: Some(200),
+                bond_top_up_window_seconds: Some(100),
+                min_quality_score: Some(300),
+                max_collections_per_curator: Some(5),
+                denom: DENOM.to_string(),
+            },
+            &[],
+            "marketplace-curation",
+            None,
+        )
+        .unwrap();
+
+    // ── Step 1: Submit a reputation signal for a project ──────────
+    let evidence = reputation_signal::state::Evidence {
+        koi_links: vec!["koi://project/edge-m010-m011".to_string()],
+        ledger_refs: vec![],
+        web_links: vec![],
+    };
+    app.execute_contract(
+        signaler.clone(),
+        rs_addr.clone(),
+        &reputation_signal::msg::ExecuteMsg::SubmitSignal {
+            subject_type: reputation_signal::state::SubjectType::Project,
+            subject_id: project_admin.to_string(),
+            category: "curation-trust".to_string(),
+            endorsement_level: 5,
+            evidence,
+        },
+        &[],
+    )
+    .unwrap();
+
+    // ── Step 2: Score before activation is zero contribution ──────
+    // The signal exists but has not cleared the activation delay, so
+    // it must not contribute to the score yet. This pins the
+    // activation-delay guard.
+    let pre_score: reputation_signal::msg::ReputationScoreResponse = app
+        .wrap()
+        .query_wasm_smart(
+            rs_addr.clone(),
+            &reputation_signal::msg::QueryMsg::ReputationScore {
+                subject_type: reputation_signal::state::SubjectType::Project,
+                subject_id: project_admin.to_string(),
+                category: "curation-trust".to_string(),
+            },
+        )
+        .unwrap();
+    assert_eq!(pre_score.contributing_signals, 0);
+    assert_eq!(pre_score.total_signals, 1);
+
+    // ── Step 3: Advance past the activation delay and activate ────
+    app.update_block(|block| {
+        block.time = block.time.plus_seconds(101);
+    });
+    app.execute_contract(
+        signaler.clone(),
+        rs_addr.clone(),
+        &reputation_signal::msg::ExecuteMsg::ActivateSignal { signal_id: 1 },
+        &[],
+    )
+    .unwrap();
+
+    // ── Step 4: Score now reflects the active signal ──────────────
+    let post_score: reputation_signal::msg::ReputationScoreResponse = app
+        .wrap()
+        .query_wasm_smart(
+            rs_addr.clone(),
+            &reputation_signal::msg::QueryMsg::ReputationScore {
+                subject_type: reputation_signal::state::SubjectType::Project,
+                subject_id: project_admin.to_string(),
+                category: "curation-trust".to_string(),
+            },
+        )
+        .unwrap();
+    assert_eq!(post_score.contributing_signals, 1);
+    assert_eq!(post_score.total_signals, 1);
+    // An endorsement_level of 5 (out of 5) should map to score 1000
+    // in the v0 normalized range (SPEC §5.3).
+    assert_eq!(post_score.score, 1000);
+
+    // The pre → post transition proves that the activation delay is
+    // enforced and that the signal actually becomes active after the
+    // block time advances past the delay. That's the one piece of
+    // m010 lifecycle behavior an off-chain curation consumer must
+    // trust: "if I query after activation, the score reflects the
+    // signal". This test pins that invariant.
+    //
+    // Silence unused-variable warnings on the curator address —
+    // future extensions of this test can exercise a curator flow
+    // inside the same App to cover the full M010 → M011 handoff
+    // once m011 acquires a real cross-contract reputation query.
+    let _ = curator;
 }
