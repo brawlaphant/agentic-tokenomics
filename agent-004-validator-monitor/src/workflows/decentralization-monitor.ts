@@ -49,7 +49,7 @@ interface Actions {
  * bonded stake strictly exceeds 33.4%. Consensus breaks at 2/3+1, so
  * the canonical Cosmos-era Nakamoto coefficient uses 33% as the
  * halt-threshold proxy. */
-function nakamotoCoefficient(sortedDescTokens: bigint[], total: bigint): number {
+export function nakamotoCoefficient(sortedDescTokens: bigint[], total: bigint): number {
   if (total === 0n || sortedDescTokens.length === 0) return 0;
   const threshold = (total * 334n) / 1000n; // 33.4%
   let cumulative = 0n;
@@ -63,7 +63,7 @@ function nakamotoCoefficient(sortedDescTokens: bigint[], total: bigint): number 
 /** Gini index of a distribution. 0 = perfect equality, 1 = perfect
  * inequality. Operates on ascending-sorted numbers and uses the
  * textbook formula. */
-function giniIndex(sortedAscTokens: number[]): number {
+export function giniIndex(sortedAscTokens: number[]): number {
   const n = sortedAscTokens.length;
   if (n === 0) return 0;
   let sum = 0;
@@ -76,7 +76,7 @@ function giniIndex(sortedAscTokens: number[]): number {
   return Math.abs(sum / (n * cumulative));
 }
 
-function topNSharePct(
+export function topNSharePct(
   sortedDescTokens: bigint[],
   total: bigint,
   n: number
@@ -89,7 +89,7 @@ function topNSharePct(
   return Number((acc * 10000n) / total) / 100;
 }
 
-function classifyHealth(
+export function classifyHealth(
   nakamoto: number,
   gini: number,
   largestSharePct: number

@@ -48,7 +48,7 @@ interface Actions {
   alertsSent: number;
 }
 
-function absBig(x: bigint): bigint {
+export function absBig(x: bigint): bigint {
   return x < 0n ? -x : x;
 }
 
