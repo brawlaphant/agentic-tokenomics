@@ -12,11 +12,17 @@ const DB_PATH = path.join(__dirname, "..", "agent-004.db");
  * WF-VM-02 until a real tx-stream lands), scorecards, decentralization
  * snapshots, and workflow execution history.
  */
-class Store {
+export class Store {
   private db: Database.Database;
 
-  constructor() {
-    this.db = new Database(DB_PATH);
+  /**
+   * `dbPath` defaults to the per-agent DB file on disk. Tests can
+   * pass `":memory:"` (or a temp file) to avoid clobbering the shared
+   * DB file and to run test suites in parallel without hitting the
+   * `database is locked` failure mode.
+   */
+  constructor(dbPath: string = DB_PATH) {
+    this.db = new Database(dbPath);
     this.db.pragma("journal_mode = WAL");
     this.migrate();
   }
@@ -154,16 +160,38 @@ class Store {
     operatorAddress: string,
     sinceIso: string
   ): number {
-    // Every row after the first recorded rate represents a change.
-    // Subtract 1 to discount the baseline row (if any) that predates
-    // the window.
-    const row = this.db
+    // Count every distinct commission-rate row recorded in the
+    // trailing window. The trick is the "is the first row in the
+    // window actually a change" question: if there's an older row
+    // from *before* the window, the first in-window row *is* a change
+    // (the rate transitioned from the older one). If there is no
+    // older row, the first in-window row is the baseline read and
+    // should not be counted.
+    //
+    // The previous implementation counted `cnt - 1`, which dropped a
+    // real commission change whenever the baseline read fell outside
+    // the window — e.g. "validator changed commission once in the
+    // last 30 days but last recorded 40 days ago" returned 0.
+    const inWindow = this.db
       .prepare(
         `SELECT COUNT(*) AS cnt FROM commission_history
          WHERE operator_address = ? AND captured_at >= ?`
       )
       .get(operatorAddress, sinceIso) as { cnt: number };
-    return Math.max(0, row.cnt - 1);
+
+    if (inWindow.cnt === 0) return 0;
+
+    const hasBaseline = this.db
+      .prepare(
+        `SELECT 1 FROM commission_history
+         WHERE operator_address = ? AND captured_at < ? LIMIT 1`
+      )
+      .get(operatorAddress, sinceIso) as { 1: number } | undefined;
+
+    // When a baseline row exists outside the window, every in-window
+    // row is a change. Otherwise the first in-window row is the
+    // baseline and the remaining rows are changes.
+    return hasBaseline ? inWindow.cnt : Math.max(0, inWindow.cnt - 1);
   }
 
   // ── Scorecards ─────────────────────────────────────────────
@@ -239,10 +267,17 @@ class Store {
     snapshot: string;
     captured_at: string;
   } | null {
+    // `LIMIT 1 OFFSET 0` intentionally — the caller invokes this in
+    // the `orient` phase before the current cycle's snapshot has
+    // been written, so the newest row in the table is the actual
+    // "previous" cycle's snapshot. An `OFFSET 1` here would skip
+    // that row and compare against the cycle before last, which
+    // shifts the trend analysis by one full cycle and returns null
+    // on the agent's second run (when only one row exists).
     const row = this.db
       .prepare(
         `SELECT nakamoto, gini, top10_pct, health, snapshot, captured_at
-         FROM decentralization_snapshots ORDER BY id DESC LIMIT 1 OFFSET 1`
+         FROM decentralization_snapshots ORDER BY id DESC LIMIT 1`
       )
       .get() as
       | {
