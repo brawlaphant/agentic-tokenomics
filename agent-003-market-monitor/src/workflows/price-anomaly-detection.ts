@@ -10,6 +10,16 @@ import type {
   AnomalySeverity,
   SellOrder,
 } from "../types.js";
+import {
+  median,
+  stddev,
+  classIdFromBatchDenom,
+  isUsdStableDenom,
+} from "../utils.js";
+
+// Re-exported so the existing unit-test suite can import helpers from
+// this workflow file (the tests pre-date the utils.ts extraction).
+export { median, stddev, classIdFromBatchDenom, isUsdStableDenom };
 
 /**
  * WF-MM-01: Price Anomaly Detection
@@ -61,12 +71,12 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   const ask = Number(order.ask_amount);
   if (!Number.isFinite(qty) || !Number.isFinite(ask) || qty <= 0) return null;
 
-  // ask_amount is in the smallest unit of ask_denom. For the MVP we
-  // treat it as already-USD when denom is a USD stablecoin and pass a
-  // 1.0 conversion otherwise. Downstream code can plug in a real
-  // price oracle.
-  const usdPerAskUnit = isUsdStableDenom(order.ask_denom) ? 1 : 1;
-  const pricePerCredit = (ask * usdPerAskUnit) / qty;
+  // Only USD stablecoin asks are priced — anything else would require
+  // an oracle we don't have yet, and letting non-USD orders into the
+  // baseline would pollute the class/batch medians with 1:1-priced
+  // garbage. Downstream code can plug in a real price oracle.
+  if (!isUsdStableDenom(order.ask_denom)) return null;
+  const pricePerCredit = ask / qty;
 
   return {
     id: order.id,
@@ -81,26 +91,6 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   };
 }
 
-export function isUsdStableDenom(denom: string): boolean {
-  const d = denom.toLowerCase();
-  return d.includes("usdc") || d.includes("usdt") || d.includes("dai");
-}
-
-export function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
-}
-
-export function stddev(values: number[], mean: number): number {
-  if (values.length <= 1) return 0;
-  const sumSq = values.reduce((acc, v) => acc + (v - mean) ** 2, 0);
-  return Math.sqrt(sumSq / (values.length - 1));
-}
-
 export function classifyAnomaly(
   zClass: number,
   zBatch: number
@@ -109,13 +99,6 @@ export function classifyAnomaly(
   if (maxZ >= config.market.criticalZScore) return "CRITICAL";
   if (maxZ >= config.market.warningZScore) return "WARNING";
   return "INFO";
-}
-
-export function classIdFromBatchDenom(denom: string): string {
-  // Regen batch denoms look like C01-001-20240101-20241231-001.
-  // The class id is the leading token before the first dash.
-  const idx = denom.indexOf("-");
-  return idx > 0 ? denom.slice(0, idx) : denom;
 }
 
 export function createPriceAnomalyDetectionWorkflow(
@@ -166,7 +149,11 @@ export function createPriceAnomalyDetectionWorkflow(
         const classMedian = median(classSamples);
         const classMean = classSamples.reduce((a, b) => a + b, 0) / classSamples.length;
         const classStd = stddev(classSamples, classMean);
-        const zClass = classStd > 0 ? (trade.pricePerCredit - classMedian) / classStd : 0;
+        // Z-score is (value - mean) / stddev; using median in the
+        // numerator while dividing by stddev (computed off the mean)
+        // would be statistically inconsistent. Median is still
+        // published in the alert payload as a context signal.
+        const zClass = classStd > 0 ? (trade.pricePerCredit - classMean) / classStd : 0;
 
         const batchMedian = batchSamples.length > 0 ? median(batchSamples) : classMedian;
         const batchMean =
@@ -174,7 +161,7 @@ export function createPriceAnomalyDetectionWorkflow(
             ? batchSamples.reduce((a, b) => a + b, 0) / batchSamples.length
             : classMean;
         const batchStd = batchSamples.length > 1 ? stddev(batchSamples, batchMean) : classStd;
-        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMedian) / batchStd : 0;
+        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMean) / batchStd : 0;
 
         const severity = classifyAnomaly(zClass, zBatch);
         if (severity === "INFO") continue;

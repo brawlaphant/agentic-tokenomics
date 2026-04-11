@@ -10,6 +10,7 @@ import type {
   CreditClass,
   AlertLevel,
 } from "../types.js";
+import { median, classIdFromBatchDenom } from "../utils.js";
 
 /**
  * WF-MM-02: Liquidity Monitoring & Reporting
@@ -57,15 +58,6 @@ export function askUsd(order: SellOrder): number {
   return ask / qty;
 }
 
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
-}
-
 export function scoreHealth(
   depthUsd: number,
   sellOrderCount: number
@@ -84,11 +76,6 @@ export function scoreHealth(
   }
 
   return { score, tier };
-}
-
-function classIdFromBatchDenom(denom: string): string {
-  const idx = denom.indexOf("-");
-  return idx > 0 ? denom.slice(0, idx) : denom;
 }
 
 export function createLiquidityMonitorWorkflow(
@@ -143,14 +130,17 @@ export function createLiquidityMonitorWorkflow(
         });
         const totalListedValueUsd = listedValues.reduce((a, b) => a + b, 0);
 
-        const sortedByPrice = orders
-          .slice()
-          .sort((a, b) => askUsd(a) - askUsd(b));
-        const top10 = sortedByPrice.slice(0, 10);
-        const depthUsd = top10.reduce((acc, o) => {
-          const p = askUsd(o);
-          const q = Number(o.quantity);
-          return acc + (Number.isFinite(p) && Number.isFinite(q) ? p * q : 0);
+        // Pre-compute askUsd once per order so the comparator is a
+        // plain number subtraction instead of recomputing the ratio on
+        // every sort invocation (sort can call the comparator O(n log n)
+        // times).
+        const pricedOrders = orders
+          .map((order) => ({ order, price: askUsd(order) }))
+          .sort((a, b) => a.price - b.price);
+        const top10 = pricedOrders.slice(0, 10);
+        const depthUsd = top10.reduce((acc, { order, price }) => {
+          const q = Number(order.quantity);
+          return acc + (Number.isFinite(price) && Number.isFinite(q) ? price * q : 0);
         }, 0);
 
         const lowestAskUsd = prices[0]!;

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { computeDemandIndex } from "./retirement-tracking.js";
+// Import directly from utils.ts so the test does not transitively
+// pull in the workflow module, which constructs the SQLite-backed
+// Store singleton at module load.
+import { computeDemandIndex } from "../utils.js";
 
 // ============================================================
 // computeDemandIndex — bounded 0-100 demand signal

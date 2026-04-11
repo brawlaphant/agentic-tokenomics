@@ -10,6 +10,11 @@ import type {
   BatchSupply,
   RetirementSummary,
 } from "../types.js";
+import { classIdFromBatchDenom, computeDemandIndex } from "../utils.js";
+
+// Re-exported so the existing unit test suite can keep importing
+// `computeDemandIndex` from this workflow file.
+export { computeDemandIndex };
 
 /**
  * WF-MM-03: Retirement Pattern Analysis
@@ -62,26 +67,6 @@ interface Actions {
   alertsSent: number;
 }
 
-function classIdFromBatchDenom(denom: string): string {
-  const idx = denom.indexOf("-");
-  return idx > 0 ? denom.slice(0, idx) : denom;
-}
-
-/** Demand index on a bounded 0-100 scale. Inputs are rolling and a
- * class with no trailing activity gets 0. The index is intentionally
- * simple — it exists so the narrative layer has a single number to
- * anchor the "demand up / demand down" story. */
-export function computeDemandIndex(
-  totalQuantity: number,
-  retirementCount: number,
-  uniqueRetirees: number
-): number {
-  const volumeComponent = Math.min(60, Math.log10(Math.max(1, totalQuantity)) * 20);
-  const countComponent = Math.min(20, retirementCount * 2);
-  const breadthComponent = Math.min(20, uniqueRetirees * 4);
-  return Math.round(volumeComponent + countComponent + breadthComponent);
-}
-
 export function createRetirementTrackingWorkflow(
   ledger: LedgerClient
 ): OODAWorkflow<Observations, Orientation, Decision, Actions> {
@@ -101,19 +86,27 @@ export function createRetirementTrackingWorkflow(
       // agent will catch new retirement activity next cycle anyway.
       const cappedBatches = batches.slice(0, 100);
 
+      // Limit concurrency to 5 in-flight LCD requests at a time.
+      // `Promise.all(cappedBatches.map(...))` fires 100 concurrent
+      // requests and will trip rate limits on public LCD endpoints.
       const batchesWithSupply: BatchWithSupply[] = [];
-      await Promise.all(
-        cappedBatches.map(async (batch) => {
-          const supply = await ledger.getBatchSupply(batch.denom);
-          if (supply) {
-            batchesWithSupply.push({
-              batch,
-              supply,
-              classId: classIdFromBatchDenom(batch.denom),
-            });
-          }
-        })
-      );
+      const CONCURRENCY = 5;
+      for (let i = 0; i < cappedBatches.length; i += CONCURRENCY) {
+        const chunk = cappedBatches.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          chunk.map(async (batch) => {
+            const supply = await ledger.getBatchSupply(batch.denom);
+            return supply
+              ? {
+                  batch,
+                  supply,
+                  classId: classIdFromBatchDenom(batch.denom),
+                }
+              : null;
+          })
+        );
+        for (const r of results) if (r) batchesWithSupply.push(r);
+      }
 
       return { classes, batchesWithSupply };
     },
