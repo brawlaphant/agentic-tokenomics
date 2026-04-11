@@ -159,6 +159,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 // Execute handlers
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn exec_submit_signal(
     deps: DepsMut,
     env: Env,
@@ -170,7 +171,7 @@ fn exec_submit_signal(
     evidence: Evidence,
 ) -> Result<Response, ContractError> {
     // Validate endorsement level 1-5
-    if endorsement_level < 1 || endorsement_level > 5 {
+    if !(1..=5).contains(&endorsement_level) {
         return Err(ContractError::InvalidEndorsementLevel {
             level: endorsement_level,
         });
@@ -534,6 +535,7 @@ fn exec_invalidate_signal(
         .add_attribute("rationale", &rationale))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn exec_update_config(
     deps: DepsMut,
     info: MessageInfo,
@@ -629,7 +631,7 @@ fn exec_remove_arbiter(
     }
 
     let addr = deps.api.addr_validate(&address)?;
-    config.arbiters.retain(|a| a != &addr);
+    config.arbiters.retain(|a| *a != addr);
     CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new()

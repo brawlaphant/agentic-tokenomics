@@ -557,6 +557,7 @@ fn execute_finalize_proposal(
 
 // ── Update Config ─────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,
@@ -650,7 +651,7 @@ fn query_proposals(
     limit: Option<u32>,
 ) -> StdResult<ProposalsResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let proposals: Vec<Proposal> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
@@ -677,7 +678,7 @@ fn query_proposals_by_admin(
 ) -> StdResult<ProposalsResponse> {
     let admin_addr = deps.api.addr_validate(&admin_address)?;
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let proposals: Vec<Proposal> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)

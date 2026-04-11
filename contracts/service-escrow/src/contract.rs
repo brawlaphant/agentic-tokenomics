@@ -764,6 +764,7 @@ fn execute_cancel(
     Ok(resp)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_update_config(
     deps: DepsMut, info: MessageInfo,
     arbiter_dao: Option<String>, community_pool: Option<String>,
@@ -913,7 +914,7 @@ fn remaining_escrow(agreement: &ServiceAgreement) -> Uint128 {
 }
 
 fn validate_bond_ratio(value: u64) -> Result<(), ContractError> {
-    if value < MIN_BOND_RATIO || value > MAX_BOND_RATIO {
+    if !(MIN_BOND_RATIO..=MAX_BOND_RATIO).contains(&value) {
         return Err(ContractError::BondRatioOutOfRange { value, min: MIN_BOND_RATIO, max: MAX_BOND_RATIO });
     }
     Ok(())
