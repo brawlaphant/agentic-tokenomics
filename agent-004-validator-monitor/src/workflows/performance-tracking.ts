@@ -1,3 +1,4 @@
+import { bech32 } from "bech32";
 import { LedgerClient } from "../ledger.js";
 import { store } from "../store.js";
 import { config } from "../config.js";
@@ -61,13 +62,29 @@ interface Actions {
   alertsSent: number;
 }
 
-function operatorToAccountBech32(_operatorAddress: string): string {
-  // Proper conversion from operator (regenvaloper1…) to delegator
-  // bech32 (regen1…) requires pulling out the underlying bytes and
-  // re-encoding with the delegator HRP. The MVP falls back to matching
-  // by moniker / position inside getVoteForVoter, so we return an
-  // empty string here and let the governance fetch short-circuit.
-  return "";
+/**
+ * Convert an operator bech32 address (e.g. `regenvaloper1abc…`) to
+ * the matching delegator bech32 (`regen1abc…`). Cosmos encodes both
+ * forms from the same underlying 20-byte payload — only the HRP
+ * differs. The delegator prefix is the operator prefix with the
+ * trailing `"valoper"` stripped.
+ *
+ * Returns `null` if the input is not a valid bech32 string or does
+ * not end in `"valoper"`. Callers must guard against null — a
+ * missing conversion means the validator cannot be queried for
+ * votes and should get a governance score of 0 rather than crash
+ * the whole cycle.
+ */
+export function operatorToAccountBech32(operatorAddress: string): string | null {
+  try {
+    const decoded = bech32.decode(operatorAddress);
+    if (!decoded.prefix.endsWith("valoper")) return null;
+    const delegatorPrefix = decoded.prefix.slice(0, -"valoper".length);
+    if (!delegatorPrefix) return null;
+    return bech32.encode(delegatorPrefix, decoded.words);
+  } catch {
+    return null;
+  }
 }
 
 export function createPerformanceTrackingWorkflow(
@@ -98,11 +115,37 @@ export function createPerformanceTrackingWorkflow(
         signingByConsAddrLike.set(info.address, info);
       }
 
-      // Votes cast per operator — computed lazily here so the orient
-      // phase can compute the ratio without hitting the LCD again.
-      // Future work: convert the operator's valoper bech32 to the
-      // delegator bech32 and query /proposals/{id}/votes/{voter}.
+      // Per-validator governance vote fetching. For each validator we
+      // convert the operator bech32 → delegator bech32 and query the
+      // LCD for whether the delegator voted on each recent finalized
+      // proposal. The result is a `votesCastByOperator` map that the
+      // orient phase turns into a per-validator governance score.
+      //
+      // This is O(validators × proposals) LCD calls per cycle (up to
+      // 75 × 20 = 1500 requests on mainnet), so we fire them in
+      // parallel within each validator to keep the overall cycle
+      // runtime bounded. A follow-up optimization can batch the
+      // requests by querying `/proposals/{id}/votes` once per proposal
+      // and indexing locally — we keep the per-voter fetch here
+      // because it's the documented Cosmos pattern.
       const votesCastByOperator = new Map<string, number>();
+      await Promise.all(
+        validators.map(async (v) => {
+          const delegator = operatorToAccountBech32(v.operator_address);
+          if (!delegator) {
+            votesCastByOperator.set(v.operator_address, 0);
+            return;
+          }
+          let votes = 0;
+          await Promise.all(
+            finalizedProposals.map(async (p) => {
+              const vote = await ledger.getVoteForVoter(p.id, delegator);
+              if (vote) votes++;
+            })
+          );
+          votesCastByOperator.set(v.operator_address, votes);
+        })
+      );
 
       return {
         validators,
@@ -159,13 +202,11 @@ export function createPerformanceTrackingWorkflow(
         );
 
         // ── Governance component ─────────────────────────────
-        // MVP: count finalized proposals as the denominator and give
-        // every validator credit for 0 votes (since the operator→account
-        // conversion is future work). This intentionally keeps the
-        // governance score at 0 across the set so no validator is
-        // punished relative to another. A follow-up PR will plug in
-        // real vote records per-validator.
-        void operatorToAccountBech32(v.operator_address);
+        // The observe phase converted each validator's operator
+        // bech32 to the delegator bech32 and queried the LCD for
+        // every recent finalized proposal, counting the number of
+        // votes cast by this validator. The governance ratio is
+        // votesCast / proposalsConsidered.
         const proposalsConsidered = obs.finalizedProposals.length;
         const votesCast = obs.votesCastByOperator.get(v.operator_address) ?? 0;
         const governanceParticipation =
