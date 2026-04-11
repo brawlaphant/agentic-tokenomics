@@ -89,16 +89,21 @@ if (isMain) {
 
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
   const vectorsDir = path.join(__dirname, "test_vectors");
-  const entries = fs.readdirSync(vectorsDir);
+  const entries = fs.existsSync(vectorsDir) ? fs.readdirSync(vectorsDir) : [];
   const inputFiles = entries
     .filter((f) => f.endsWith(".input.json"))
     .sort();
+
+  if (inputFiles.length === 0) {
+    console.error(`FAIL: no test vectors found in ${vectorsDir}`);
+    process.exit(1);
+  }
 
   let pass = true;
   let totalChecked = 0;
 
   for (const inputFile of inputFiles) {
-    const name = inputFile.replace(".input.json", "");
+    const name = inputFile.replace(/\.input\.json$/, "");
     const expectedFile = `${name}.expected.json`;
     if (!entries.includes(expectedFile)) {
       console.error(`MISSING expected file for ${inputFile}`);
@@ -106,35 +111,54 @@ if (isMain) {
       continue;
     }
 
-    const input = JSON.parse(fs.readFileSync(path.join(vectorsDir, inputFile), "utf8"));
-    const expected = JSON.parse(fs.readFileSync(path.join(vectorsDir, expectedFile), "utf8"));
+    let input;
+    let expected;
+    try {
+      input = JSON.parse(fs.readFileSync(path.join(vectorsDir, inputFile), "utf8"));
+      expected = JSON.parse(fs.readFileSync(path.join(vectorsDir, expectedFile), "utf8"));
+    } catch (err) {
+      console.error(`FAIL ${name}: could not parse vector files — ${err.message}`);
+      pass = false;
+      continue;
+    }
 
     const results = input.milestones.map((m) => computeM009Score({
       milestone: m.milestone,
       factors: m.factors
     }));
 
+    const expectedScores = expected.scores || [];
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
-      const e = expected.scores[i];
+      const e = expectedScores[i];
       if (!e) {
         console.error(`MISSING expected[${i}] in ${expectedFile}`);
         pass = false;
         continue;
       }
+      let matched = true;
       if (r.score !== e.score) {
         console.error(
           `FAIL ${name}[${i}]: got score=${r.score}, expected score=${e.score}`
         );
         pass = false;
+        matched = false;
       }
       if (r.recommendation !== e.recommendation) {
         console.error(
           `FAIL ${name}[${i}]: got recommendation=${r.recommendation}, expected=${e.recommendation}`
         );
         pass = false;
+        matched = false;
       }
-      if (r.score === e.score && r.recommendation === e.recommendation) {
+      if (e.confidence !== undefined && r.confidence !== e.confidence) {
+        console.error(
+          `FAIL ${name}[${i}]: got confidence=${r.confidence}, expected=${e.confidence}`
+        );
+        pass = false;
+        matched = false;
+      }
+      if (matched) {
         totalChecked++;
       }
     }
