@@ -1,0 +1,25 @@
+{
+  "description": "Edge case: ecological_multiplier_enabled with deltaCo2 = 25 ppm against a reference of 50 ppm → ecoMult = 1 - 25/50 = 0.5. Regrowth rate is halved relative to an equivalent eco-disabled period.",
+  "config": {
+    "hard_cap": "221000000000000",
+    "r_base": 0.02,
+    "ecological_multiplier": 1.0,
+    "ecological_multiplier_enabled": true
+  },
+  "periods": [
+    {
+      "label": "eco halves the rate: deltaCo2=25, ref=50, eco=0.5",
+      "supply_state": {
+        "current_supply": "150000000000000",
+        "hard_cap": "221000000000000",
+        "staked_amount": "75000000000000",
+        "stability_committed": "0",
+        "m014_state": "INACTIVE",
+        "ecological_multiplier_enabled": true,
+        "delta_co2": 25,
+        "ecological_reference_value": 50
+      },
+      "burn_amount": "500000000000"
+    }
+  ]
+}

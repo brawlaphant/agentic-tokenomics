@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_eco_multiplier_negative_boost, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "eco boost from negative deltaCo2: deltaCo2=-10, ref=50, eco=1.2",
+      "next_supply": "152356000000000",
+      "minted": "2556000000000",
+      "burned": "200000000000",
+      "regrowth_rate": 0.036,
+      "effective_multiplier": 1.5,
+      "staking_multiplier": 1.5,
+      "ecological_multiplier": 1.2,
+      "headroom_before": "71000000000000",
+      "headroom_after": "68644000000000"
+    }
+  ]
+}

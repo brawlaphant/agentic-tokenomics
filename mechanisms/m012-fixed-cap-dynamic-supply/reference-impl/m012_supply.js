@@ -132,17 +132,23 @@ export function computeSupplyPeriod({ supply_state, burn_amount, config }) {
 }
 
 // --------------- Self-test harness ---------------
+//
+// Discovers every *.input.json file in test_vectors/ and checks each
+// one against its matching *.expected.json sibling. Adding a new
+// edge-case vector is a zero-touch change to this harness — just drop
+// both files into test_vectors/ and rerun.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function selfTest() {
-  const inputPath = join(__dirname, "test_vectors", "vector_v0_sample.input.json");
-  const expectedPath = join(__dirname, "test_vectors", "vector_v0_sample.expected.json");
+function runVector(inputFile) {
+  const base = inputFile.replace(".input.json", "");
+  const inputPath = join(__dirname, "test_vectors", inputFile);
+  const expectedPath = join(__dirname, "test_vectors", `${base}.expected.json`);
 
   const input = JSON.parse(readFileSync(inputPath, "utf8"));
   const expected = JSON.parse(readFileSync(expectedPath, "utf8"));
@@ -174,7 +180,9 @@ function selfTest() {
 
     for (const [field, got, want] of checks) {
       if (String(got) !== String(want)) {
-        console.error(`FAIL period ${i + 1} (${p.label}) ${field}: got ${got}, want ${want}`);
+        console.error(
+          `FAIL ${base} period ${i + 1} (${p.label}) ${field}: got ${got}, want ${want}`
+        );
         fail++;
       } else {
         pass++;
@@ -182,8 +190,31 @@ function selfTest() {
     }
   }
 
-  console.log(`m012_supply self-test: ${pass} passed, ${fail} failed`);
-  if (fail > 0) process.exit(1);
+  return { pass, fail, vectorName: base, periodCount: input.periods.length };
+}
+
+function selfTest() {
+  const vectorsDir = join(__dirname, "test_vectors");
+  const inputFiles = readdirSync(vectorsDir)
+    .filter((f) => f.endsWith(".input.json"))
+    .sort();
+
+  let totalPass = 0;
+  let totalFail = 0;
+  let totalPeriods = 0;
+
+  for (const inputFile of inputFiles) {
+    const { pass, fail, periodCount } = runVector(inputFile);
+    totalPass += pass;
+    totalFail += fail;
+    totalPeriods += periodCount;
+  }
+
+  console.log(
+    `m012_supply self-test: ${totalPass} passed, ${totalFail} failed (` +
+    `${totalPeriods} periods across ${inputFiles.length} vectors)`
+  );
+  if (totalFail > 0) process.exit(1);
 }
 
 // Run self-test when executed directly

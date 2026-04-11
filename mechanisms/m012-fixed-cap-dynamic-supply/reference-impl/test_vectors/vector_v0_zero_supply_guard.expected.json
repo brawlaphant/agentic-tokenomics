@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_zero_supply_guard, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "zero supply: divide-by-zero guard returns unity multipliers",
+      "next_supply": "4420000000000",
+      "minted": "4420000000000",
+      "burned": "0",
+      "regrowth_rate": 0.02,
+      "effective_multiplier": 1,
+      "staking_multiplier": 1,
+      "ecological_multiplier": 1,
+      "headroom_before": "221000000000000",
+      "headroom_after": "216580000000000"
+    }
+  ]
+}

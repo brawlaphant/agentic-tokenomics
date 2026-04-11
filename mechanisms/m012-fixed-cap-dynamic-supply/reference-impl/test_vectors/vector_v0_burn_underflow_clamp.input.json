@@ -1,0 +1,23 @@
+{
+  "description": "Edge case: burn amount exceeds S[t] + M[t] so the naive next_supply would be negative. Pins Security Invariant 2 (Non-Negative Supply) — the computed next_supply is clamped to 0. This cannot happen on mainnet today, but the guard exists so a future bug that produces a giant burn event cannot drive the state below zero.",
+  "config": {
+    "hard_cap": "221000000000000",
+    "r_base": 0.02,
+    "ecological_multiplier": 1.0,
+    "ecological_multiplier_enabled": false
+  },
+  "periods": [
+    {
+      "label": "burn exceeds supply: next_supply clamped to 0",
+      "supply_state": {
+        "current_supply": "1000000000",
+        "hard_cap": "221000000000000",
+        "staked_amount": "0",
+        "stability_committed": "0",
+        "m014_state": "INACTIVE",
+        "ecological_multiplier_enabled": false
+      },
+      "burn_amount": "100000000000"
+    }
+  ]
+}

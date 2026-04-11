@@ -1,0 +1,25 @@
+{
+  "description": "Edge case: deltaCo2 is negative (atmospheric improvement) → ecoMult = 1 - (-10)/50 = 1.2. Regrowth rate is boosted above the eco-disabled baseline. Pins the sign-carrying branch of the eco multiplier.",
+  "config": {
+    "hard_cap": "221000000000000",
+    "r_base": 0.02,
+    "ecological_multiplier": 1.0,
+    "ecological_multiplier_enabled": true
+  },
+  "periods": [
+    {
+      "label": "eco boost from negative deltaCo2: deltaCo2=-10, ref=50, eco=1.2",
+      "supply_state": {
+        "current_supply": "150000000000000",
+        "hard_cap": "221000000000000",
+        "staked_amount": "75000000000000",
+        "stability_committed": "0",
+        "m014_state": "INACTIVE",
+        "ecological_multiplier_enabled": true,
+        "delta_co2": -10,
+        "ecological_reference_value": 50
+      },
+      "burn_amount": "200000000000"
+    }
+  ]
+}

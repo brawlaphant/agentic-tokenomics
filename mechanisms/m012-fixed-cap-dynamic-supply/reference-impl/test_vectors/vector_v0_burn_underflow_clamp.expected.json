@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_burn_underflow_clamp, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "burn exceeds supply: next_supply clamped to 0",
+      "next_supply": "4320980000000",
+      "minted": "4419980000000",
+      "burned": "100000000000",
+      "regrowth_rate": 0.02,
+      "effective_multiplier": 1,
+      "staking_multiplier": 1,
+      "ecological_multiplier": 1,
+      "headroom_before": "220999000000000",
+      "headroom_after": "216679020000000"
+    }
+  ]
+}
