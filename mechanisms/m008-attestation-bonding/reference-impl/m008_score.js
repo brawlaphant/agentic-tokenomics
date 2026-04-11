@@ -102,6 +102,11 @@ function computeConfidence(factors) {
 }
 
 // --- Self-test ---
+//
+// Discovers every *.input.json file in the test_vectors/ directory and
+// checks each one against its matching *.expected.json sibling. Adding
+// a new edge-case vector is a zero-touch change to this file — just
+// drop both files into test_vectors/ and rerun.
 const isMain = typeof process !== "undefined" &&
   process.argv[1] &&
   (process.argv[1].endsWith("m008_score.js") || process.argv[1].endsWith("m008_score"));
@@ -112,30 +117,55 @@ if (isMain) {
   const url = await import("node:url");
 
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const inputPath = path.join(__dirname, "test_vectors", "vector_v0_sample.input.json");
-  const expectedPath = path.join(__dirname, "test_vectors", "vector_v0_sample.expected.json");
-
-  const input = JSON.parse(fs.readFileSync(inputPath, "utf8"));
-  const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
-
-  const results = input.attestations.map(a => computeM008Score({
-    attestation: a.attestation,
-    factors: a.factors
-  }));
+  const vectorsDir = path.join(__dirname, "test_vectors");
+  const entries = fs.readdirSync(vectorsDir);
+  const inputFiles = entries
+    .filter((f) => f.endsWith(".input.json"))
+    .sort();
 
   let pass = true;
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    const e = expected.scores[i];
-    if (r.score !== e.score) {
-      console.error(`FAIL attestation[${i}]: got score=${r.score}, expected score=${e.score}`);
+  let totalChecked = 0;
+
+  for (const inputFile of inputFiles) {
+    const name = inputFile.replace(".input.json", "");
+    const expectedFile = `${name}.expected.json`;
+    if (!entries.includes(expectedFile)) {
+      console.error(`MISSING expected file for ${inputFile}`);
       pass = false;
+      continue;
+    }
+
+    const input = JSON.parse(fs.readFileSync(path.join(vectorsDir, inputFile), "utf8"));
+    const expected = JSON.parse(fs.readFileSync(path.join(vectorsDir, expectedFile), "utf8"));
+
+    const results = input.attestations.map((a) => computeM008Score({
+      attestation: a.attestation,
+      factors: a.factors
+    }));
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const e = expected.scores[i];
+      if (!e) {
+        console.error(`MISSING expected[${i}] in ${expectedFile}`);
+        pass = false;
+        continue;
+      }
+      if (r.score !== e.score) {
+        console.error(
+          `FAIL ${name}[${i}]: got score=${r.score}, expected score=${e.score}`
+        );
+        pass = false;
+      } else {
+        totalChecked++;
+      }
     }
   }
 
   if (pass) {
-    console.log("m008_score self-test: PASS");
-    console.log(JSON.stringify({ scores: results }, null, 2));
+    console.log(
+      `m008_score self-test: PASS (${totalChecked} attestations across ${inputFiles.length} vectors)`
+    );
   } else {
     process.exit(1);
   }

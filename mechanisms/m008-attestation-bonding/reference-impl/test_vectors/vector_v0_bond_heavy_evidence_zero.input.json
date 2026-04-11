@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: a well-bonded attester with a strong type_risk, but zero evidence and zero reputation. Verifies that bond alone cannot carry the composite above the 700 line — protects against a 'buy your score' attack vector.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-bond-heavy-evidence-zero",
+        "attestation_type": "MethodologyValidation",
+        "attestation_iri": "koi://attestation/edge-bond-heavy",
+        "bond": { "amount": "10000", "denom": "uregen" }
+      },
+      "factors": {
+        "bond_adequacy": 1000,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 1000,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_attestations": true,
+        "type_recognized": true
+      }
+    }
+  ]
+}

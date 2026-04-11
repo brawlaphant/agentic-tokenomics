@@ -1,0 +1,15 @@
+{
+  "_comment": "After clamping: bond_adequacy 1000, attester_reputation 0, evidence_completeness 1000, type_risk 500. 0.30*1000 + 0.30*0 + 0.25*1000 + 0.15*500 = 300 + 0 + 250 + 75 = 625. Confidence = 4/4 = 1000.",
+  "scores": [
+    {
+      "score": 625,
+      "confidence": 1000,
+      "factors": {
+        "bond_adequacy": 1000,
+        "attester_reputation": 0,
+        "evidence_completeness": 1000,
+        "type_risk": 500
+      }
+    }
+  ]
+}

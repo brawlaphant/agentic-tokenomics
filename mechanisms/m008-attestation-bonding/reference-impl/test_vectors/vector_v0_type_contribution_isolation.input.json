@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: isolates the type_risk contribution. All other factors explicitly 0, type_risk=1000. Verifies that the type_risk weight is correctly 0.15 of the composite.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-type-contribution-isolation",
+        "attestation_type": "MethodologyValidation",
+        "attestation_iri": "koi://attestation/edge-type-isolation",
+        "bond": { "amount": "0", "denom": "uregen" }
+      },
+      "factors": {
+        "bond_adequacy": 0,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 1000,
+        "reputation_available": false,
+        "iri_resolvable": true,
+        "has_prior_attestations": false,
+        "type_recognized": true
+      }
+    }
+  ]
+}

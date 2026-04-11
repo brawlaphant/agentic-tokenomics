@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: every factor at the 1000 ceiling with every flag true. Verifies the score ceiling and confidence ceiling both hold.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-all-maximum",
+        "attestation_type": "MethodologyValidation",
+        "attestation_iri": "koi://attestation/edge-all-maximum",
+        "bond": { "amount": "10000", "denom": "uregen" }
+      },
+      "factors": {
+        "bond_adequacy": 1000,
+        "attester_reputation": 1000,
+        "evidence_completeness": 1000,
+        "type_risk": 1000,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_attestations": true,
+        "type_recognized": true
+      }
+    }
+  ]
+}

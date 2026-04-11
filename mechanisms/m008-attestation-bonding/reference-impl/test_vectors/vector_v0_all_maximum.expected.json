@@ -1,0 +1,15 @@
+{
+  "_comment": "0.30*1000 + 0.30*1000 + 0.25*1000 + 0.15*1000 = 300 + 300 + 250 + 150 = 1000. All four flags true, confidence = 1000.",
+  "scores": [
+    {
+      "score": 1000,
+      "confidence": 1000,
+      "factors": {
+        "bond_adequacy": 1000,
+        "attester_reputation": 1000,
+        "evidence_completeness": 1000,
+        "type_risk": 1000
+      }
+    }
+  ]
+}
