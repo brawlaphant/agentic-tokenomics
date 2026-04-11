@@ -134,10 +134,29 @@ if (isMain) {
         pass = false;
         continue;
       }
-      if (r.score !== e.score || r.recommendation !== e.recommendation) {
+      const factorsMatch =
+        e.factors === undefined ||
+        JSON.stringify(r.factors) === JSON.stringify(e.factors);
+      const confidenceMatch =
+        e.confidence === undefined || r.confidence === e.confidence;
+      if (
+        r.score !== e.score ||
+        r.recommendation !== e.recommendation ||
+        !confidenceMatch ||
+        !factorsMatch
+      ) {
         console.error(
-          `FAIL ${name}[${i}]: got score=${r.score} rec=${r.recommendation}, ` +
-          `expected score=${e.score} rec=${e.recommendation}`
+          `FAIL ${name}[${i}]: got ${JSON.stringify({
+            score: r.score,
+            confidence: r.confidence,
+            recommendation: r.recommendation,
+            factors: r.factors,
+          })}, expected ${JSON.stringify({
+            score: e.score,
+            confidence: e.confidence,
+            recommendation: e.recommendation,
+            factors: e.factors,
+          })}`
         );
         pass = false;
       } else {
