@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_zero_factors_empty, computed by m014_score.js computeM014Score.",
+  "scores": [
+    {
+      "address": "regenvaloper1edgezerofactors",
+      "performance_score": 0,
+      "confidence": 0,
+      "factors": {
+        "uptime": null,
+        "governance_participation": null,
+        "ecosystem_contribution": null
+      },
+      "flags": []
+    }
+  ]
+}

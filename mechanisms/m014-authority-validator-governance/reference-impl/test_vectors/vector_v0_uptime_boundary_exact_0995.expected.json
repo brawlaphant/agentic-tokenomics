@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_uptime_boundary_exact_0995, computed by m014_score.js computeM014Score.",
+  "scores": [
+    {
+      "address": "regenvaloper1edgeboundary",
+      "performance_score": 0.995,
+      "confidence": 1,
+      "factors": {
+        "uptime": 0.995,
+        "governance_participation": 0.995,
+        "ecosystem_contribution": 0.995
+      },
+      "flags": []
+    }
+  ]
+}

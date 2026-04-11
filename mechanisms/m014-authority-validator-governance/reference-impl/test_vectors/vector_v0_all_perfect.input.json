@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: every factor at 1.0. Pins that a validator with perfect uptime, perfect governance participation, and perfect ecosystem contribution scores 1.0 with no flags and full confidence.",
+  "validators": [
+    {
+      "address": "regenvaloper1edgeperfect",
+      "factors": {
+        "uptime": 1.0,
+        "governance_participation": 1.0,
+        "ecosystem_contribution": 1.0
+      }
+    }
+  ]
+}

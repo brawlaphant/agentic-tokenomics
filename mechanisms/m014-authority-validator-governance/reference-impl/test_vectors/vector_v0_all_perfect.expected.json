@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_all_perfect, computed by m014_score.js computeM014Score.",
+  "scores": [
+    {
+      "address": "regenvaloper1edgeperfect",
+      "performance_score": 1,
+      "confidence": 1,
+      "factors": {
+        "uptime": 1,
+        "governance_participation": 1,
+        "ecosystem_contribution": 1
+      },
+      "flags": []
+    }
+  ]
+}

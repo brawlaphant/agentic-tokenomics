@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: uptime lands exactly on 0.995. Pins the strict-inequality boundary on below_uptime_minimum — the predicate is `uptime < 0.995`, so uptime=0.995 does NOT fire the flag. All factors set to 0.995 so the composite score is also 0.995, well above the 0.70 performance threshold. A future refactor that changes < to <= would flip this vector and the composite would sit just above probation with no flags.",
+  "validators": [
+    {
+      "address": "regenvaloper1edgeboundary",
+      "factors": {
+        "uptime": 0.995,
+        "governance_participation": 0.995,
+        "ecosystem_contribution": 0.995
+      }
+    }
+  ]
+}

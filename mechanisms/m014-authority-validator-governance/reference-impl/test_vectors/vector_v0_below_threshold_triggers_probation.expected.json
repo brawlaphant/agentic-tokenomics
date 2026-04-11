@@ -1,0 +1,20 @@
+{
+  "description": "Expected output for vector_v0_below_threshold_triggers_probation, computed by m014_score.js computeM014Score.",
+  "scores": [
+    {
+      "address": "regenvaloper1edgebelow",
+      "performance_score": 0.5,
+      "confidence": 1,
+      "factors": {
+        "uptime": 0.5,
+        "governance_participation": 0.5,
+        "ecosystem_contribution": 0.5
+      },
+      "flags": [
+        "below_performance_threshold",
+        "below_uptime_minimum",
+        "probation_recommended"
+      ]
+    }
+  ]
+}

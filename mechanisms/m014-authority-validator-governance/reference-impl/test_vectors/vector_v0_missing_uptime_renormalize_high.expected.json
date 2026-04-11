@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_missing_uptime_renormalize_high, computed by m014_score.js computeM014Score.",
+  "scores": [
+    {
+      "address": "regenvaloper1edgemissinguptime",
+      "performance_score": 1,
+      "confidence": 0.67,
+      "factors": {
+        "uptime": null,
+        "governance_participation": 1,
+        "ecosystem_contribution": 1
+      },
+      "flags": []
+    }
+  ]
+}
