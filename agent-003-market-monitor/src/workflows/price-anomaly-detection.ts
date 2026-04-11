@@ -10,6 +10,16 @@ import type {
   AnomalySeverity,
   SellOrder,
 } from "../types.js";
+import {
+  median,
+  stddev,
+  classIdFromBatchDenom,
+  isUsdStableDenom,
+} from "../utils.js";
+
+// Re-exported so the existing unit-test suite can import helpers from
+// this workflow file (the tests pre-date the utils.ts extraction).
+export { median, stddev, classIdFromBatchDenom, isUsdStableDenom };
 
 /**
  * WF-MM-01: Price Anomaly Detection
@@ -81,26 +91,6 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   };
 }
 
-export function isUsdStableDenom(denom: string): boolean {
-  const d = denom.toLowerCase();
-  return d.includes("usdc") || d.includes("usdt") || d.includes("dai");
-}
-
-export function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
-}
-
-export function stddev(values: number[], mean: number): number {
-  if (values.length <= 1) return 0;
-  const sumSq = values.reduce((acc, v) => acc + (v - mean) ** 2, 0);
-  return Math.sqrt(sumSq / (values.length - 1));
-}
-
 export function classifyAnomaly(
   zClass: number,
   zBatch: number
@@ -109,13 +99,6 @@ export function classifyAnomaly(
   if (maxZ >= config.market.criticalZScore) return "CRITICAL";
   if (maxZ >= config.market.warningZScore) return "WARNING";
   return "INFO";
-}
-
-export function classIdFromBatchDenom(denom: string): string {
-  // Regen batch denoms look like C01-001-20240101-20241231-001.
-  // The class id is the leading token before the first dash.
-  const idx = denom.indexOf("-");
-  return idx > 0 ? denom.slice(0, idx) : denom;
 }
 
 export function createPriceAnomalyDetectionWorkflow(

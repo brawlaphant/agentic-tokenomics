@@ -5,6 +5,7 @@ import { describeRetirementSummary } from "../monitor.js";
 import { output } from "../output.js";
 import type { OODAWorkflow } from "../ooda.js";
 import type { Retirement, RetirementSummary } from "../types.js";
+import { classIdFromBatchDenom, computeDemandIndex } from "../utils.js";
 
 /**
  * WF-MM-03: Retirement Pattern Analysis
@@ -52,21 +53,6 @@ interface Decision {
 interface Actions {
   saved: number;
   alertsSent: number;
-}
-
-/** Demand index on a bounded 0-100 scale. Inputs are rolling and a
- * class with no trailing activity gets 0. The index is intentionally
- * simple — it exists so the narrative layer has a single number to
- * anchor the "demand up / demand down" story. */
-export function computeDemandIndex(
-  totalQuantity: number,
-  retirementCount: number,
-  uniqueRetirees: number
-): number {
-  const volumeComponent = Math.min(60, Math.log10(Math.max(1, totalQuantity)) * 20);
-  const countComponent = Math.min(20, retirementCount * 2);
-  const breadthComponent = Math.min(20, uniqueRetirees * 4);
-  return Math.round(volumeComponent + countComponent + breadthComponent);
 }
 
 /**

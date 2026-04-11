@@ -68,7 +68,8 @@ export class LedgerClient {
         `/regen/ecocredit/v1/classes/${classId}`
       );
       return (data.class || null) as CreditClass | null;
-    } catch {
+    } catch (err) {
+      console.error(`LedgerClient.getCreditClass(${classId}) failed:`, err);
       return null;
     }
   }
@@ -92,7 +93,8 @@ export class LedgerClient {
         `/regen/ecocredit/v1/batches/${denom}`
       );
       return (data.batch || null) as CreditBatch | null;
-    } catch {
+    } catch (err) {
+      console.error(`LedgerClient.getCreditBatch(${denom}) failed:`, err);
       return null;
     }
   }
@@ -103,7 +105,8 @@ export class LedgerClient {
         `/regen/ecocredit/v1/batches/${denom}/supply`
       );
       return (data.supply || null) as BatchSupply | null;
-    } catch {
+    } catch (err) {
+      console.error(`LedgerClient.getBatchSupply(${denom}) failed:`, err);
       return null;
     }
   }
@@ -119,7 +122,8 @@ export class LedgerClient {
         `/regen/ecocredit/marketplace/v1/sell-orders?${params.toString()}`
       );
       return (data.sell_orders || []) as SellOrder[];
-    } catch {
+    } catch (err) {
+      console.error(`LedgerClient.getSellOrders(limit=${limit}) failed:`, err);
       return [];
     }
   }
@@ -133,7 +137,11 @@ export class LedgerClient {
         `/regen/ecocredit/marketplace/v1/sell-orders/batch/${denom}?${params.toString()}`
       );
       return (data.sell_orders || []) as SellOrder[];
-    } catch {
+    } catch (err) {
+      console.error(
+        `LedgerClient.getSellOrdersByBatch(${denom}) failed:`,
+        err
+      );
       return [];
     }
   }
@@ -144,7 +152,8 @@ export class LedgerClient {
         `/regen/ecocredit/marketplace/v1/sell-orders/${orderId}`
       );
       return (data.sell_order || null) as SellOrder | null;
-    } catch {
+    } catch (err) {
+      console.error(`LedgerClient.getSellOrder(${orderId}) failed:`, err);
       return null;
     }
   }

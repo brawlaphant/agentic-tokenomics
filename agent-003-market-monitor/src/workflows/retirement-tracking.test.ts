@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import {
-  computeDemandIndex,
-  aggregateRetirementsByClass,
-} from "./retirement-tracking.js";
+// Import computeDemandIndex from utils so the test does not
+// transitively pull in the workflow module, which constructs the
+// SQLite-backed Store singleton at module load. aggregateRetirementsByClass
+// stays in retirement-tracking — only used by tests that already exercise it.
+import { computeDemandIndex } from "../utils.js";
+import { aggregateRetirementsByClass } from "./retirement-tracking.js";
 import type { Retirement } from "../types.js";
 
 // ============================================================
