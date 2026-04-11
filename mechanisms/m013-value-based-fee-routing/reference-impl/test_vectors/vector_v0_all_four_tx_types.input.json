@@ -1,0 +1,49 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: one event per tx_type, each at a value that produces a clean non-min fee. Pins that each tx_type maps to the correct rate in the DEFAULT_FEE_RATES table: CreditIssuance=0.02, CreditTransfer=0.001, CreditRetirement=0.005, MarketplaceTrade=0.01. A refactor that swaps two entries in the rate table would break this vector.",
+  "fee_config": {
+    "fee_rates": {
+      "CreditIssuance": 0.02,
+      "CreditTransfer": 0.001,
+      "CreditRetirement": 0.005,
+      "MarketplaceTrade": 0.01
+    },
+    "distribution_shares": {
+      "burn": 0.30,
+      "validator": 0.40,
+      "community": 0.25,
+      "agent": 0.05
+    },
+    "min_fee_uregen": 1000000
+  },
+  "fee_events": [
+    {
+      "tx_hash": "edge-all-types-issuance",
+      "tx_type": "CreditIssuance",
+      "timestamp": "2026-02-18T12:00:00Z",
+      "value_uregen": 1000000000,
+      "payer": "regen1edgeissuance"
+    },
+    {
+      "tx_hash": "edge-all-types-transfer",
+      "tx_type": "CreditTransfer",
+      "timestamp": "2026-02-18T12:00:01Z",
+      "value_uregen": 10000000000,
+      "payer": "regen1edgetransfer"
+    },
+    {
+      "tx_hash": "edge-all-types-retirement",
+      "tx_type": "CreditRetirement",
+      "timestamp": "2026-02-18T12:00:02Z",
+      "value_uregen": 2000000000,
+      "payer": "regen1edgeretire"
+    },
+    {
+      "tx_hash": "edge-all-types-market",
+      "tx_type": "MarketplaceTrade",
+      "timestamp": "2026-02-18T12:00:03Z",
+      "value_uregen": 1000000000,
+      "payer": "regen1edgemarket"
+    }
+  ]
+}

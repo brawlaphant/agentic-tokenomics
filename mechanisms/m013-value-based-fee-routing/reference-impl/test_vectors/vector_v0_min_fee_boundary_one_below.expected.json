@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_min_fee_boundary_one_below, computed by m013_fee.js computeFee.",
+  "fee_results": [
+    {
+      "tx_hash": "edge-min-fee-one-below",
+      "fee_amount_uregen": 1000000,
+      "min_fee_applied": true,
+      "distribution": {
+        "burn": 300000,
+        "validator": 400000,
+        "community": 250000,
+        "agent": 50000
+      }
+    }
+  ]
+}

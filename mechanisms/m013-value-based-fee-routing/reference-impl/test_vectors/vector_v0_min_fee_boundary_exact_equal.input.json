@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: raw fee computes to exactly min_fee_uregen (1000000 uregen). Value 1000000000 × 0.001 = 1000000. Pins the opposite side of the boundary from the one-below vector — at equality, min_fee_applied is FALSE because the predicate is strict (rawFee < minFee, not <=). A future refactor that changes < to <= would flip this vector.",
+  "fee_config": {
+    "fee_rates": {
+      "CreditIssuance": 0.02,
+      "CreditTransfer": 0.001,
+      "CreditRetirement": 0.005,
+      "MarketplaceTrade": 0.01
+    },
+    "distribution_shares": {
+      "burn": 0.30,
+      "validator": 0.40,
+      "community": 0.25,
+      "agent": 0.05
+    },
+    "min_fee_uregen": 1000000
+  },
+  "fee_events": [
+    {
+      "tx_hash": "edge-min-fee-exact",
+      "tx_type": "CreditTransfer",
+      "timestamp": "2026-02-18T12:00:00Z",
+      "value_uregen": 1000000000,
+      "payer": "regen1edgeexact"
+    }
+  ]
+}

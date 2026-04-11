@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_custom_distribution_shares, computed by m013_fee.js computeFee.",
+  "fee_results": [
+    {
+      "tx_hash": "edge-custom-shares",
+      "fee_amount_uregen": 2000000,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 300000,
+        "validator": 600000,
+        "community": 1000000,
+        "agent": 100000
+      }
+    }
+  ]
+}

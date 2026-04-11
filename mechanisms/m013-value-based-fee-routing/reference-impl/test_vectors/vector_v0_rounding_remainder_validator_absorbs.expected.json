@@ -1,0 +1,16 @@
+{
+  "description": "Expected output for vector_v0_rounding_remainder_validator_absorbs, computed by m013_fee.js computeFee.",
+  "fee_results": [
+    {
+      "tx_hash": "edge-rounding-remainder",
+      "fee_amount_uregen": 3333333,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 999999,
+        "validator": 1333335,
+        "community": 833333,
+        "agent": 166666
+      }
+    }
+  ]
+}
