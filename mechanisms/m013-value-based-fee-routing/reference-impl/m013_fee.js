@@ -105,6 +105,14 @@ function runVector(inputFile) {
   const feeConfig = input.fee_config;
   let failures = 0;
 
+  if (expected.fee_results.length !== input.fee_events.length) {
+    console.error(
+      `FAIL ${base}: expected.fee_results length ${expected.fee_results.length} !== ` +
+      `fee_events length ${input.fee_events.length}`
+    );
+    failures++;
+  }
+
   for (let i = 0; i < input.fee_events.length; i++) {
     const ev = input.fee_events[i];
     const result = computeFee({
@@ -145,27 +153,35 @@ function runVector(inputFile) {
   return { failures, events: input.fee_events.length };
 }
 
-if (fs.existsSync(vectorDir)) {
-  const inputFiles = fs
-    .readdirSync(vectorDir)
-    .filter((f) => f.endsWith(".input.json"))
-    .sort();
-
-  let totalFailures = 0;
-  let totalEvents = 0;
-
-  for (const inputFile of inputFiles) {
-    const { failures, events } = runVector(inputFile);
-    totalFailures += failures;
-    totalEvents += events;
-  }
-
-  if (totalFailures > 0) {
-    console.error(`\nm013_fee self-test: ${totalFailures} failure(s)`);
-    process.exit(1);
-  }
-
-  console.log(
-    `m013_fee self-test: PASS (${totalEvents} events across ${inputFiles.length} vectors)`
-  );
+if (!fs.existsSync(vectorDir)) {
+  console.error(`FAIL: test vector directory not found: ${vectorDir}`);
+  process.exit(1);
 }
+
+const inputFiles = fs
+  .readdirSync(vectorDir)
+  .filter((f) => f.endsWith(".input.json"))
+  .sort();
+
+if (inputFiles.length === 0) {
+  console.error(`FAIL: no test vectors found in ${vectorDir}`);
+  process.exit(1);
+}
+
+let totalFailures = 0;
+let totalEvents = 0;
+
+for (const inputFile of inputFiles) {
+  const { failures, events } = runVector(inputFile);
+  totalFailures += failures;
+  totalEvents += events;
+}
+
+if (totalFailures > 0) {
+  console.error(`\nm013_fee self-test: ${totalFailures} failure(s)`);
+  process.exit(1);
+}
+
+console.log(
+  `m013_fee self-test: PASS (${totalEvents} events across ${inputFiles.length} vectors)`
+);
