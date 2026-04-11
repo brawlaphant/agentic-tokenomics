@@ -79,6 +79,14 @@ jobs:
         working-directory: agent-002-governance-analyst
         run: npx tsc --noEmit
 
+      - name: Install agent-004-validator-monitor/ dependencies
+        working-directory: agent-004-validator-monitor
+        run: npm ci
+
+      - name: Typecheck agent-004-validator-monitor/
+        working-directory: agent-004-validator-monitor
+        run: npx tsc --noEmit
+
   # ── Spec verification: schemas, reference impls, datasets ───────────
   verify-specs:
     name: Verify Specs
