@@ -71,7 +71,7 @@ function classIdFromBatchDenom(denom: string): string {
  * class with no trailing activity gets 0. The index is intentionally
  * simple — it exists so the narrative layer has a single number to
  * anchor the "demand up / demand down" story. */
-function computeDemandIndex(
+export function computeDemandIndex(
   totalQuantity: number,
   retirementCount: number,
   uniqueRetirees: number

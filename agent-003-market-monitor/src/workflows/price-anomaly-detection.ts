@@ -81,12 +81,12 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   };
 }
 
-function isUsdStableDenom(denom: string): boolean {
+export function isUsdStableDenom(denom: string): boolean {
   const d = denom.toLowerCase();
   return d.includes("usdc") || d.includes("usdt") || d.includes("dai");
 }
 
-function median(values: number[]): number {
+export function median(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -95,13 +95,13 @@ function median(values: number[]): number {
     : sorted[mid]!;
 }
 
-function stddev(values: number[], mean: number): number {
+export function stddev(values: number[], mean: number): number {
   if (values.length <= 1) return 0;
   const sumSq = values.reduce((acc, v) => acc + (v - mean) ** 2, 0);
   return Math.sqrt(sumSq / (values.length - 1));
 }
 
-function classifyAnomaly(
+export function classifyAnomaly(
   zClass: number,
   zBatch: number
 ): AnomalySeverity {
@@ -111,7 +111,7 @@ function classifyAnomaly(
   return "INFO";
 }
 
-function classIdFromBatchDenom(denom: string): string {
+export function classIdFromBatchDenom(denom: string): string {
   // Regen batch denoms look like C01-001-20240101-20241231-001.
   // The class id is the leading token before the first dash.
   const idx = denom.indexOf("-");

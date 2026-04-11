@@ -49,7 +49,7 @@ interface Actions {
   alertsSent: number;
 }
 
-function askUsd(order: SellOrder): number {
+export function askUsd(order: SellOrder): number {
   const ask = Number(order.ask_amount);
   const qty = Number(order.quantity);
   if (!Number.isFinite(ask) || !Number.isFinite(qty) || qty <= 0) return 0;
@@ -66,7 +66,7 @@ function median(values: number[]): number {
     : sorted[mid]!;
 }
 
-function scoreHealth(
+export function scoreHealth(
   depthUsd: number,
   sellOrderCount: number
 ): { score: number; tier: LiquiditySnapshot["health"] } {
