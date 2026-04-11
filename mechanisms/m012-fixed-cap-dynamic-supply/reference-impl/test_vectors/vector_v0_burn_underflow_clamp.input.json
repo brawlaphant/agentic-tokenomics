@@ -8,7 +8,7 @@
   },
   "periods": [
     {
-      "label": "burn exceeds supply: next_supply clamped to 0",
+      "label": "burn exceeds supply + minted: next_supply clamped to 0",
       "supply_state": {
         "current_supply": "1000000000",
         "hard_cap": "221000000000000",
@@ -17,7 +17,7 @@
         "m014_state": "INACTIVE",
         "ecological_multiplier_enabled": false
       },
-      "burn_amount": "100000000000"
+      "burn_amount": "5000000000000"
     }
   ]
 }

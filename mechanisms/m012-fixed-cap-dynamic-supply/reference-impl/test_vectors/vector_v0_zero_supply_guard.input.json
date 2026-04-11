@@ -1,5 +1,5 @@
 {
-  "description": "Edge case: current_supply is 0. Pins the `sFloat > 0` guard in the staking and stability multiplier computations — both default to 1.0 rather than dividing by zero. Minting is 0 * headroom = 0, burn is 0, next_supply stays at 0.",
+  "description": "Edge case: current_supply is 0. Pins the `sFloat > 0` guard in the staking and stability multiplier computations — both default to 1.0 rather than dividing by zero. Minting occurs on the full headroom (M = r * (C - 0) = r * C ≈ 4.42T), so next_supply ends at ~4.42T, not 0.",
   "config": {
     "hard_cap": "221000000000000",
     "r_base": 0.02,
