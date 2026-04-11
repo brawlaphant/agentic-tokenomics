@@ -130,7 +130,13 @@ export function createDecentralizationMonitorWorkflow(
       const total = tokensBig.reduce((acc, t) => acc + t, 0n);
       const sortedDesc = [...tokensBig].sort((a, b) => (a > b ? -1 : a < b ? 1 : 0));
 
-      const tokensNum = active.map((v) => Number(BigInt(v.tokens || "0") / 1_000_000n));
+      // Convert uregen → JS number without pre-dividing: integer
+      // division by 1_000_000n floors validators with less than 1
+      // REGEN to zero and loses every fractional REGEN for larger
+      // stakes, which is load-bearing for Gini. Number.MAX_SAFE_INTEGER
+      // is 2^53-1 ≈ 9e15 uregen ≈ 9 trillion REGEN, so the whole
+      // uregen value fits safely — no pre-scaling needed.
+      const tokensNum = active.map((v) => Number(BigInt(v.tokens || "0")));
       const sortedAscNum = [...tokensNum].sort((a, b) => a - b);
 
       const nakamoto = nakamotoCoefficient(sortedDesc, total);

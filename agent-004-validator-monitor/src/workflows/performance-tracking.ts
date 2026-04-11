@@ -3,6 +3,10 @@ import { store } from "../store.js";
 import { config } from "../config.js";
 import { describePerformanceReport } from "../monitor.js";
 import { output } from "../output.js";
+import {
+  operatorToDelegator,
+  consensusPubkeyToConsAddress,
+} from "../bech32.js";
 import type { OODAWorkflow } from "../ooda.js";
 import type {
   Validator,
@@ -61,14 +65,6 @@ interface Actions {
   alertsSent: number;
 }
 
-function operatorToAccountBech32(_operatorAddress: string): string {
-  // Proper conversion from operator (regenvaloper1…) to delegator
-  // bech32 (regen1…) requires pulling out the underlying bytes and
-  // re-encoding with the delegator HRP. The MVP falls back to matching
-  // by moniker / position inside getVoteForVoter, so we return an
-  // empty string here and let the governance fetch short-circuit.
-  return "";
-}
 
 export function createPerformanceTrackingWorkflow(
   ledger: LedgerClient
@@ -125,6 +121,13 @@ export function createPerformanceTrackingWorkflow(
       const scorecards: ValidatorScorecard[] = [];
       const alerts: PerformanceAlert[] = [];
 
+      // Compute the trailing-window cutoff once — it does not depend
+      // on the validator, so there is no point recomputing it per
+      // iteration the way the original loop did.
+      const sinceIso = new Date(
+        Date.now() - config.validator.uptimeTrailingDays * 86_400_000
+      ).toISOString();
+
       // Record a commission baseline for every validator we see this
       // cycle; the commission history drives the stability penalty.
       for (const v of validators) {
@@ -140,12 +143,20 @@ export function createPerformanceTrackingWorkflow(
           bonded > 0n ? Number((tokens * 10000n) / bonded) / 100 : 0;
 
         // ── Uptime component ─────────────────────────────────
-        // When we can't find signing info, assume 100% (signed every
-        // window) rather than penalizing — better to under-count real
-        // issues than to smear a healthy validator.
-        const signing = signingByConsAddrLike.get(
-          v.consensus_pubkey?.key || ""
-        );
+        // Derive the regenvalcons1… address from the validator's
+        // consensus pubkey so it matches the keys in
+        // signingByConsAddrLike (which are `info.address`, i.e. the
+        // valcons bech32). Previously we were joining a base64
+        // pubkey string against a bech32 address and the lookup
+        // always missed — every validator was reporting 0 missed
+        // blocks, which masked real downtime. When the derivation or
+        // the lookup still fails we fall back to 100% uptime rather
+        // than penalizing a validator we cannot classify.
+        const pubkeyBase64 = v.consensus_pubkey?.key || "";
+        const consAddr = consensusPubkeyToConsAddress(pubkeyBase64);
+        const signing = consAddr
+          ? signingByConsAddrLike.get(consAddr)
+          : undefined;
         const missedBlocks = signing
           ? Number(signing.missed_blocks_counter || "0")
           : 0;
@@ -159,13 +170,13 @@ export function createPerformanceTrackingWorkflow(
         );
 
         // ── Governance component ─────────────────────────────
-        // MVP: count finalized proposals as the denominator and give
-        // every validator credit for 0 votes (since the operator→account
-        // conversion is future work). This intentionally keeps the
-        // governance score at 0 across the set so no validator is
-        // punished relative to another. A follow-up PR will plug in
-        // real vote records per-validator.
-        void operatorToAccountBech32(v.operator_address);
+        // Derive the delegator bech32 from the operator address so we
+        // could plug in real per-validator vote records downstream.
+        // The observe phase still leaves `votesCastByOperator` empty
+        // in this PR (governance scoring is batched in WF-VM-03), so
+        // every validator is treated as 0-votes relative to the same
+        // denominator until that wiring lands.
+        void operatorToDelegator(v.operator_address);
         const proposalsConsidered = obs.finalizedProposals.length;
         const votesCast = obs.votesCastByOperator.get(v.operator_address) ?? 0;
         const governanceParticipation =
@@ -181,9 +192,6 @@ export function createPerformanceTrackingWorkflow(
         // const` in config.ts otherwise infers a literal type.
         let stabilityScore: number = config.validator.scoreWeightStability;
         if (v.jailed) stabilityScore -= config.validator.stabilityPenaltyJailing;
-        const sinceIso = new Date(
-          Date.now() - config.validator.uptimeTrailingDays * 86_400_000
-        ).toISOString();
         const commissionChanges = store.countCommissionChangesSince(
           v.operator_address,
           sinceIso
