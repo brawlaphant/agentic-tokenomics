@@ -91,8 +91,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install root dependencies
-        run: npm ci
+      # The root package.json declares zero runtime dependencies —
+      # the verify scripts only use built-in `node:*` modules — so
+      # there is nothing to install. Skip `npm ci` (which would
+      # otherwise fail hard because there is no root
+      # package-lock.json to consume).
 
       - name: Run verify script
         run: node scripts/verify.mjs

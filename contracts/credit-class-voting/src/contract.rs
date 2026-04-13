@@ -28,6 +28,18 @@ const DEFAULT_AGENT_REVIEW_TIMEOUT: u64 = 86_400;
 /// Default override window: 6 hours
 const DEFAULT_OVERRIDE_WINDOW: u64 = 21_600;
 
+/// Grouped parameters for `execute_update_config`. Carries exactly the
+/// fields of `ExecuteMsg::UpdateConfig` so the dispatch block can forward
+/// them in one move without tripping clippy's `too_many_arguments` lint.
+struct UpdateConfigParams {
+    registry_agent: Option<String>,
+    deposit_amount: Option<Uint128>,
+    voting_period_seconds: Option<u64>,
+    agent_review_timeout_seconds: Option<u64>,
+    override_window_seconds: Option<u64>,
+    community_pool: Option<String>,
+}
+
 /// Slash 20% of deposit on rejection
 const REJECT_SLASH_BPS: u128 = 2000;
 /// Slash 5% of deposit on expiry
@@ -112,12 +124,14 @@ pub fn execute(
         } => execute_update_config(
             deps,
             info,
-            registry_agent,
-            deposit_amount,
-            voting_period_seconds,
-            agent_review_timeout_seconds,
-            override_window_seconds,
-            community_pool,
+            UpdateConfigParams {
+                registry_agent,
+                deposit_amount,
+                voting_period_seconds,
+                agent_review_timeout_seconds,
+                override_window_seconds,
+                community_pool,
+            },
         ),
     }
 }
@@ -560,12 +574,7 @@ fn execute_finalize_proposal(
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,
-    registry_agent: Option<String>,
-    deposit_amount: Option<Uint128>,
-    voting_period_seconds: Option<u64>,
-    agent_review_timeout_seconds: Option<u64>,
-    override_window_seconds: Option<u64>,
-    community_pool: Option<String>,
+    params: UpdateConfigParams,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -575,22 +584,22 @@ fn execute_update_config(
         });
     }
 
-    if let Some(agent) = registry_agent {
+    if let Some(agent) = params.registry_agent {
         config.registry_agent = deps.api.addr_validate(&agent)?;
     }
-    if let Some(amount) = deposit_amount {
+    if let Some(amount) = params.deposit_amount {
         config.deposit_amount = amount;
     }
-    if let Some(seconds) = voting_period_seconds {
+    if let Some(seconds) = params.voting_period_seconds {
         config.voting_period_seconds = seconds;
     }
-    if let Some(seconds) = agent_review_timeout_seconds {
+    if let Some(seconds) = params.agent_review_timeout_seconds {
         config.agent_review_timeout_seconds = seconds;
     }
-    if let Some(seconds) = override_window_seconds {
+    if let Some(seconds) = params.override_window_seconds {
         config.override_window_seconds = seconds;
     }
-    if let Some(pool) = community_pool {
+    if let Some(pool) = params.community_pool {
         config.community_pool = Some(deps.api.addr_validate(&pool)?);
     }
 
@@ -650,7 +659,7 @@ fn query_proposals(
     limit: Option<u32>,
 ) -> StdResult<ProposalsResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let proposals: Vec<Proposal> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
@@ -677,7 +686,7 @@ fn query_proposals_by_admin(
 ) -> StdResult<ProposalsResponse> {
     let admin_addr = deps.api.addr_validate(&admin_address)?;
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let proposals: Vec<Proposal> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)

@@ -5,8 +5,8 @@
   "type": "module",
   "main": "./src/index.ts",
   "dependencies": {
-    "@regen/core": "workspace:*",
-    "@regen/plugin-ledger-mcp": "workspace:*",
-    "@regen/plugin-koi-mcp": "workspace:*"
+    "@regen/core": "*",
+    "@regen/plugin-ledger-mcp": "*",
+    "@regen/plugin-koi-mcp": "*"
   }
 }

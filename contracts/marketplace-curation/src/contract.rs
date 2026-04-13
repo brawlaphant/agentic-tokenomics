@@ -844,7 +844,7 @@ fn query_collections(
     limit: Option<u32>,
 ) -> StdResult<CollectionsResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let curator_addr = curator
         .map(|c| deps.api.addr_validate(&c))
@@ -860,7 +860,7 @@ fn query_collections(
                 }
             }
             if let Some(ref c) = curator_addr {
-                if &coll.curator != c {
+                if coll.curator != *c {
                     return None;
                 }
             }
