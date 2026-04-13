@@ -66,6 +66,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Comment on PR
+        # Don't fail the CI job when the comment step can't post. PRs
+        # opened from forks run with a read-only GITHUB_TOKEN (GitHub
+        # security policy) so the comment API returns 403. The WASM
+        # build itself already succeeded — the report is informational
+        # only, not a gate, so skipping it silently on forks is fine.
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           # Pass the multi-line report through an env var rather than
