@@ -6,6 +6,6 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@regen/core": "*"
+    "@regen/core": "^0.1.0"
   }
 }

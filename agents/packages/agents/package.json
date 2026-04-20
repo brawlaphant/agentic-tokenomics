@@ -5,8 +5,8 @@
   "type": "module",
   "main": "./src/index.ts",
   "dependencies": {
-    "@regen/core": "*",
-    "@regen/plugin-ledger-mcp": "*",
-    "@regen/plugin-koi-mcp": "*"
+    "@regen/core": "^0.1.0",
+    "@regen/plugin-ledger-mcp": "^0.1.0",
+    "@regen/plugin-koi-mcp": "^0.1.0"
   }
 }
