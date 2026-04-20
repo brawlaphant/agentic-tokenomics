@@ -63,7 +63,8 @@ Confidence is derived from data availability:
 - No data: confidence = 0.0
 
 ### 5.3 Performance threshold
-- Validators with `performance_score < 0.70` are flagged for review.
+- `POA_ELIGIBILITY_SCORE = 0.80` — the minimum composite `performance_score` a CANDIDATE must clear to join the Authority set. Stored as an on-chain governance parameter (see §10), not hardcoded in client tooling; integrators should read the current value rather than the 0.80 default.
+- Active validators with `performance_score < 0.70` are flagged for review (below the review threshold but above the eligibility floor).
 - Validators with `uptime < 0.995` (99.5%) are flagged for probation consideration.
 
 ### 5.4 Compensation allocation
@@ -185,6 +186,7 @@ authority_set:
 | `min_validators` | 15 | Layer 4 | Security minimum |
 | `term_length` | 12 months | Layer 3 (Human-in-Loop) | Significant governance decision |
 | `min_uptime` | 99.5% | Layer 2 (Agentic + Oversight) | Operational parameter |
+| `POA_ELIGIBILITY_SCORE` | 0.80 | Layer 2 | Minimum composite score for Authority-set eligibility |
 | `probation_period` | 30 days | Layer 2 | Operational parameter |
 | `composition_ratios` | 5/5/5 minimum per category | Layer 3 | Structural governance decision |
 | `performance_bonus_share` | 10% of validator fund | Layer 2 | Operational adjustment |
