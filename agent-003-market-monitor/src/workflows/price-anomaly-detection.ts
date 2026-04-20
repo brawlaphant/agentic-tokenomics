@@ -61,12 +61,12 @@ function sellOrderToTrade(order: SellOrder, classId: string): Trade | null {
   const ask = Number(order.ask_amount);
   if (!Number.isFinite(qty) || !Number.isFinite(ask) || qty <= 0) return null;
 
-  // ask_amount is in the smallest unit of ask_denom. For the MVP we
-  // treat it as already-USD when denom is a USD stablecoin and pass a
-  // 1.0 conversion otherwise. Downstream code can plug in a real
-  // price oracle.
-  const usdPerAskUnit = isUsdStableDenom(order.ask_denom) ? 1 : 1;
-  const pricePerCredit = (ask * usdPerAskUnit) / qty;
+  // Only USD stablecoin asks are priced — anything else would require
+  // an oracle we don't have yet, and letting non-USD orders into the
+  // baseline would pollute the class/batch medians with 1:1-priced
+  // garbage. Downstream code can plug in a real price oracle.
+  if (!isUsdStableDenom(order.ask_denom)) return null;
+  const pricePerCredit = ask / qty;
 
   return {
     id: order.id,

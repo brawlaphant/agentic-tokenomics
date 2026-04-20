@@ -74,17 +74,29 @@ async function main() {
   if (runOnce) {
     await runCycle(ledger);
   } else {
-    await runCycle(ledger);
+    // Recursive setTimeout rather than setInterval so a slow cycle
+    // never overlaps with the next tick. If a cycle takes longer than
+    // pollIntervalMs, the next tick simply starts late — we never have
+    // two runCycle invocations sharing the database in parallel.
+    let timeoutId: NodeJS.Timeout | null = null;
+    let stopping = false;
 
-    const interval = setInterval(() => {
-      runCycle(ledger).catch((err) =>
-        console.error(`Cycle failed:`, err)
-      );
-    }, config.pollIntervalMs);
+    const runNext = () => {
+      runCycle(ledger)
+        .catch((err) => console.error(`Cycle failed:`, err))
+        .finally(() => {
+          if (!stopping) {
+            timeoutId = setTimeout(runNext, config.pollIntervalMs);
+          }
+        });
+    };
+
+    runNext();
 
     const shutdown = () => {
       console.log("\nShutting down gracefully...");
-      clearInterval(interval);
+      stopping = true;
+      if (timeoutId !== null) clearTimeout(timeoutId);
       store.close();
       process.exit(0);
     };

@@ -173,6 +173,12 @@ export function createRetirementTrackingWorkflow(
       // tx-search endpoint. Each tx response can emit multiple
       // MsgRetire events (batched retirements) — the ledger client
       // flattens them into individual Retirement records.
+      //
+      // The tx-stream replaces the older batch-supply-delta approach
+      // wholesale (cap 100 batches + concurrency-5 fan-out + per-batch
+      // stored cumulative deltas), so that code is intentionally not
+      // preserved here. Event-sourcing is exact where the delta method
+      // was approximate.
       const retirements = await ledger.getRecentRetirementTxs(200);
       return { retirements };
     },
