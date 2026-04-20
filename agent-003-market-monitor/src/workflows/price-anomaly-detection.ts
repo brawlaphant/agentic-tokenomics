@@ -163,10 +163,20 @@ export function createPriceAnomalyDetectionWorkflow(
 
         if (classSamples.length < config.market.minSamples) continue;
 
+        // Z-score numerator must pair with its denominator's center:
+        // stddev is measured around the mean, so the Z-score has to
+        // subtract the mean, not the median. Mixing median with stddev
+        // silently biases every score by (mean − median), which on a
+        // skewed price distribution can flip anomaly severity.
+        //
+        // We still keep the median around as the human-readable
+        // reference price on the anomaly record — median reads more
+        // intuitively than mean for a thin market — but it is not used
+        // in the statistical test.
         const classMedian = median(classSamples);
         const classMean = classSamples.reduce((a, b) => a + b, 0) / classSamples.length;
         const classStd = stddev(classSamples, classMean);
-        const zClass = classStd > 0 ? (trade.pricePerCredit - classMedian) / classStd : 0;
+        const zClass = classStd > 0 ? (trade.pricePerCredit - classMean) / classStd : 0;
 
         const batchMedian = batchSamples.length > 0 ? median(batchSamples) : classMedian;
         const batchMean =
@@ -174,7 +184,7 @@ export function createPriceAnomalyDetectionWorkflow(
             ? batchSamples.reduce((a, b) => a + b, 0) / batchSamples.length
             : classMean;
         const batchStd = batchSamples.length > 1 ? stddev(batchSamples, batchMean) : classStd;
-        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMedian) / batchStd : 0;
+        const zBatch = batchStd > 0 ? (trade.pricePerCredit - batchMean) / batchStd : 0;
 
         const severity = classifyAnomaly(zClass, zBatch);
         if (severity === "INFO") continue;
