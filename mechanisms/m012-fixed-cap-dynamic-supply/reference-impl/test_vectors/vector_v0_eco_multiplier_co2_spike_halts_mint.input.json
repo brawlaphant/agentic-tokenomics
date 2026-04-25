@@ -1,0 +1,25 @@
+{
+  "description": "Edge case: deltaCo2 matches ecological_reference_value exactly → ecoMult = max(0, 1 - 50/50) = 0. Regrowth rate collapses to 0, minting is zero, supply only decreases by the burn amount.",
+  "config": {
+    "hard_cap": "221000000000000",
+    "r_base": 0.02,
+    "ecological_multiplier": 1.0,
+    "ecological_multiplier_enabled": true
+  },
+  "periods": [
+    {
+      "label": "CO2 spike halts minting: deltaCo2=50, ref=50, eco=0",
+      "supply_state": {
+        "current_supply": "150000000000000",
+        "hard_cap": "221000000000000",
+        "staked_amount": "75000000000000",
+        "stability_committed": "0",
+        "m014_state": "INACTIVE",
+        "ecological_multiplier_enabled": true,
+        "delta_co2": 50,
+        "ecological_reference_value": 50
+      },
+      "burn_amount": "1000000000000"
+    }
+  ]
+}

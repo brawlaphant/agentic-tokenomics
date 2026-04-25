@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_eco_multiplier_halves_rate, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "eco halves the rate: deltaCo2=25, ref=50, eco=0.5",
+      "next_supply": "150565000000000",
+      "minted": "1065000000000",
+      "burned": "500000000000",
+      "regrowth_rate": 0.015,
+      "effective_multiplier": 1.5,
+      "staking_multiplier": 1.5,
+      "ecological_multiplier": 0.5,
+      "headroom_before": "71000000000000",
+      "headroom_after": "70435000000000"
+    }
+  ]
+}

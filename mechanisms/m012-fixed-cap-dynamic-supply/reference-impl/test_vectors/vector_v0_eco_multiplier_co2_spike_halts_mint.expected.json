@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_eco_multiplier_co2_spike_halts_mint, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "CO2 spike halts minting: deltaCo2=50, ref=50, eco=0",
+      "next_supply": "149000000000000",
+      "minted": "0",
+      "burned": "1000000000000",
+      "regrowth_rate": 0,
+      "effective_multiplier": 1.5,
+      "staking_multiplier": 1.5,
+      "ecological_multiplier": 0,
+      "headroom_before": "71000000000000",
+      "headroom_after": "72000000000000"
+    }
+  ]
+}

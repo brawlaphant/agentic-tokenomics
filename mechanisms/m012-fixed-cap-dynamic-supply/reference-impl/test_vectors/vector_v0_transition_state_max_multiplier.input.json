@@ -1,0 +1,23 @@
+{
+  "description": "Edge case: m014_state=TRANSITION with both staking and stability commitments. The effective multiplier must be MAX(staking_mult, stability_mult) per SPEC section 5.3 — the transition phase honors whichever multiplier is currently higher so validators are not punished during the handover. staking_mult = 1 + 75T/150T = 1.5; stability_mult = 1 + 120T/150T = 1.8; effective = max = 1.8.",
+  "config": {
+    "hard_cap": "221000000000000",
+    "r_base": 0.02,
+    "ecological_multiplier": 1.0,
+    "ecological_multiplier_enabled": false
+  },
+  "periods": [
+    {
+      "label": "m014 TRANSITION: effective = max(staking, stability)",
+      "supply_state": {
+        "current_supply": "150000000000000",
+        "hard_cap": "221000000000000",
+        "staked_amount": "75000000000000",
+        "stability_committed": "120000000000000",
+        "m014_state": "TRANSITION",
+        "ecological_multiplier_enabled": false
+      },
+      "burn_amount": "500000000000"
+    }
+  ]
+}

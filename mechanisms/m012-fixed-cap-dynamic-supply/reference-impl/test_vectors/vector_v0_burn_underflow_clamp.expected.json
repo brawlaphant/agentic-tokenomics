@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_burn_underflow_clamp, computed by m012_supply.js computeSupplyPeriod. With S=1B, M=0.02*(221T-1B)=~4.42T, burning 5T drives S+M-B negative so Non-Negative Supply clamps it to 0 and the headroom recovers to the full hard cap.",
+  "periods": [
+    {
+      "label": "burn exceeds supply + minted: next_supply clamped to 0",
+      "next_supply": "0",
+      "minted": "4419980000000",
+      "burned": "5000000000000",
+      "regrowth_rate": 0.02,
+      "effective_multiplier": 1,
+      "staking_multiplier": 1,
+      "ecological_multiplier": 1,
+      "headroom_before": "220999000000000",
+      "headroom_after": "221000000000000"
+    }
+  ]
+}

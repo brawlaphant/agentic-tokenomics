@@ -1,0 +1,17 @@
+{
+  "description": "Expected output for vector_v0_transition_state_max_multiplier, computed by m012_supply.js computeSupplyPeriod.",
+  "periods": [
+    {
+      "label": "m014 TRANSITION: effective = max(staking, stability)",
+      "next_supply": "152056000000000",
+      "minted": "2556000000000",
+      "burned": "500000000000",
+      "regrowth_rate": 0.036000000000000004,
+      "effective_multiplier": 1.8,
+      "staking_multiplier": 1.5,
+      "ecological_multiplier": 1,
+      "headroom_before": "71000000000000",
+      "headroom_after": "68944000000000"
+    }
+  ]
+}
