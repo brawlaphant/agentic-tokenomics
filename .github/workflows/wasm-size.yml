@@ -66,15 +66,31 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Comment on PR
+        # Don't fail the CI job when the comment step can't post. PRs
+        # opened from forks run with a read-only GITHUB_TOKEN (GitHub
+        # security policy) so the comment API returns 403. The WASM
+        # build itself already succeeded — the report is informational
+        # only, not a gate, so skipping it silently on forks is fine.
+        continue-on-error: true
         uses: actions/github-script@v7
+        env:
+          # Pass the multi-line report through an env var rather than
+          # via `${{ steps... }}` substitution. Substitution inlines the
+          # report text directly into the JavaScript source before it
+          # runs, which breaks single-quoted string literals as soon as
+          # the report spans more than one line (or contains quotes,
+          # backticks, or backslashes). Reading from the env var keeps
+          # the report an opaque string at runtime.
+          REPORT: ${{ steps.sizes.outputs.report }}
         with:
           script: |
             const marker = '<!-- wasm-size-report -->';
+            const report = process.env.REPORT || '(no report)';
             const body = [
               marker,
               '## WASM Binary Sizes',
               '',
-              '${{ steps.sizes.outputs.report }}',
+              report,
               '',
               `_Built from \`${context.sha.slice(0, 8)}\` on \`${context.ref.replace('refs/heads/', '')}\`_`,
             ].join('\n');

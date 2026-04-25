@@ -542,15 +542,15 @@ fn query_attestations(
     start_after: Option<u64>, limit: Option<u32>,
 ) -> StdResult<AttestationsResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
     let attester_addr = attester.map(|a| deps.api.addr_validate(&a)).transpose()?;
 
     let attestations: Vec<_> = ATTESTATIONS
         .range(deps.storage, start, None, Order::Ascending)
         .filter_map(|item| item.ok())
         .filter(|(_, a)| {
-            status.as_ref().map_or(true, |s| a.status == *s)
-                && attester_addr.as_ref().map_or(true, |addr| a.attester == *addr)
+            status.as_ref().is_none_or(|s| a.status == *s)
+                && attester_addr.as_ref().is_none_or(|addr| a.attester == *addr)
         })
         .take(limit)
         .map(|(_, a)| a)
@@ -568,12 +568,12 @@ fn query_challenges(
     deps: Deps, attestation_id: Option<u64>, start_after: Option<u64>, limit: Option<u32>,
 ) -> StdResult<ChallengesResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
-    let start = start_after.map(|s| cw_storage_plus::Bound::exclusive(s));
+    let start = start_after.map(cw_storage_plus::Bound::exclusive);
 
     let challenges: Vec<_> = CHALLENGES
         .range(deps.storage, start, None, Order::Ascending)
         .filter_map(|item| item.ok())
-        .filter(|(_, c)| attestation_id.map_or(true, |aid| c.attestation_id == aid))
+        .filter(|(_, c)| attestation_id.is_none_or(|aid| c.attestation_id == aid))
         .take(limit)
         .map(|(_, c)| c)
         .collect();

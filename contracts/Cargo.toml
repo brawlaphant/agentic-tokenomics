@@ -3,8 +3,11 @@ members = [
     "attestation-bonding",
     "contribution-rewards",
     "credit-class-voting",
+    "dynamic-supply",
+    "fee-router",
     "integration-tests",
     "marketplace-curation",
+    "reputation-signal",
     "service-escrow",
     "validator-governance",
 ]
