@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: overrides the default distribution_shares with the Economic Reboot Proposal A values (burn=0.15, validator=0.30, community=0.50, agent=0.05). Pins that the fee router correctly reads the override from fee_config and does NOT fall back to DEFAULT_DISTRIBUTION_SHARES. The fee conservation invariant still holds: burn + validator + community + agent == feeAmount.",
+  "fee_config": {
+    "fee_rates": {
+      "CreditIssuance": 0.02,
+      "CreditTransfer": 0.001,
+      "CreditRetirement": 0.005,
+      "MarketplaceTrade": 0.01
+    },
+    "distribution_shares": {
+      "burn": 0.15,
+      "validator": 0.30,
+      "community": 0.50,
+      "agent": 0.05
+    },
+    "min_fee_uregen": 1000000
+  },
+  "fee_events": [
+    {
+      "tx_hash": "edge-custom-shares",
+      "tx_type": "CreditIssuance",
+      "timestamp": "2026-02-18T12:00:00Z",
+      "value_uregen": 100000000,
+      "payer": "regen1edgecustomshares"
+    }
+  ]
+}

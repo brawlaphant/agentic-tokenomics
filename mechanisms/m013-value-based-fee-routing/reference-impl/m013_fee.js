@@ -75,7 +75,10 @@ export function computeFee({ tx_type, value, fee_config }) {
 }
 
 // ---------------------------------------------------------------------------
-// Self-test harness: reads test vectors, computes, compares, exit(1) on mismatch
+// Self-test harness: discovers every *.input.json file in test_vectors/
+// and checks each against its matching *.expected.json sibling. Adding a
+// new edge-case vector is a zero-touch change to this harness — just drop
+// both files into test_vectors/ and rerun.
 // ---------------------------------------------------------------------------
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -85,16 +88,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const vectorDir = path.join(__dirname, "test_vectors");
-const inputPath = path.join(vectorDir, "vector_v0_sample.input.json");
-const expectedPath = path.join(vectorDir, "vector_v0_sample.expected.json");
 
-if (fs.existsSync(inputPath) && fs.existsSync(expectedPath)) {
+function runVector(inputFile) {
+  const base = inputFile.replace(".input.json", "");
+  const inputPath = path.join(vectorDir, inputFile);
+  const expectedPath = path.join(vectorDir, `${base}.expected.json`);
+
+  if (!fs.existsSync(inputPath) || !fs.existsSync(expectedPath)) {
+    console.error(`MISSING vector files for ${base}`);
+    return { failures: 1, events: 0 };
+  }
+
   const input = JSON.parse(fs.readFileSync(inputPath, "utf8"));
   const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
 
   const feeConfig = input.fee_config;
-  const results = [];
   let failures = 0;
+
+  if (expected.fee_results.length !== input.fee_events.length) {
+    console.error(
+      `FAIL ${base}: expected.fee_results length ${expected.fee_results.length} !== ` +
+      `fee_events length ${input.fee_events.length}`
+    );
+    failures++;
+  }
 
   for (let i = 0; i < input.fee_events.length; i++) {
     const ev = input.fee_events[i];
@@ -105,34 +122,66 @@ if (fs.existsSync(inputPath) && fs.existsSync(expectedPath)) {
     });
 
     const exp = expected.fee_results[i];
+    if (!exp) {
+      console.error(`MISSING expected[${i}] for ${base}`);
+      failures++;
+      continue;
+    }
 
     if (result.fee_amount !== exp.fee_amount_uregen) {
-      console.error(`FAIL [${ev.tx_hash}]: fee_amount ${result.fee_amount} !== expected ${exp.fee_amount_uregen}`);
+      console.error(
+        `FAIL ${base} [${ev.tx_hash}]: fee_amount ${result.fee_amount} !== expected ${exp.fee_amount_uregen}`
+      );
       failures++;
     }
     if (result.min_fee_applied !== exp.min_fee_applied) {
-      console.error(`FAIL [${ev.tx_hash}]: min_fee_applied ${result.min_fee_applied} !== expected ${exp.min_fee_applied}`);
+      console.error(
+        `FAIL ${base} [${ev.tx_hash}]: min_fee_applied ${result.min_fee_applied} !== expected ${exp.min_fee_applied}`
+      );
       failures++;
     }
     for (const pool of ["burn", "validator", "community", "agent"]) {
       if (result.distribution[pool] !== exp.distribution[pool]) {
-        console.error(`FAIL [${ev.tx_hash}]: distribution.${pool} ${result.distribution[pool]} !== expected ${exp.distribution[pool]}`);
+        console.error(
+          `FAIL ${base} [${ev.tx_hash}]: distribution.${pool} ${result.distribution[pool]} !== expected ${exp.distribution[pool]}`
+        );
         failures++;
       }
     }
-
-    results.push({
-      tx_hash: ev.tx_hash,
-      fee_amount_uregen: result.fee_amount,
-      min_fee_applied: result.min_fee_applied,
-      distribution: result.distribution
-    });
   }
 
-  if (failures > 0) {
-    console.error(`\nm013_fee self-test: ${failures} failure(s)`);
-    process.exit(1);
-  }
-
-  console.log("m013_fee self-test: PASS");
+  return { failures, events: input.fee_events.length };
 }
+
+if (!fs.existsSync(vectorDir)) {
+  console.error(`FAIL: test vector directory not found: ${vectorDir}`);
+  process.exit(1);
+}
+
+const inputFiles = fs
+  .readdirSync(vectorDir)
+  .filter((f) => f.endsWith(".input.json"))
+  .sort();
+
+if (inputFiles.length === 0) {
+  console.error(`FAIL: no test vectors found in ${vectorDir}`);
+  process.exit(1);
+}
+
+let totalFailures = 0;
+let totalEvents = 0;
+
+for (const inputFile of inputFiles) {
+  const { failures, events } = runVector(inputFile);
+  totalFailures += failures;
+  totalEvents += events;
+}
+
+if (totalFailures > 0) {
+  console.error(`\nm013_fee self-test: ${totalFailures} failure(s)`);
+  process.exit(1);
+}
+
+console.log(
+  `m013_fee self-test: PASS (${totalEvents} events across ${inputFiles.length} vectors)`
+);

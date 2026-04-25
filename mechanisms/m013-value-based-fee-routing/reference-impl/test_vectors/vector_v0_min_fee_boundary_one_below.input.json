@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: raw fee computes to exactly min_fee_uregen - 1 (999999 uregen). Value 999999000 × 0.001 = 999999. Pins that the min-fee floor fires when rawFee is strictly less than min_fee_uregen.",
+  "fee_config": {
+    "fee_rates": {
+      "CreditIssuance": 0.02,
+      "CreditTransfer": 0.001,
+      "CreditRetirement": 0.005,
+      "MarketplaceTrade": 0.01
+    },
+    "distribution_shares": {
+      "burn": 0.30,
+      "validator": 0.40,
+      "community": 0.25,
+      "agent": 0.05
+    },
+    "min_fee_uregen": 1000000
+  },
+  "fee_events": [
+    {
+      "tx_hash": "edge-min-fee-one-below",
+      "tx_type": "CreditTransfer",
+      "timestamp": "2026-02-18T12:00:00Z",
+      "value_uregen": 999999000,
+      "payer": "regen1edgeonebelow"
+    }
+  ]
+}

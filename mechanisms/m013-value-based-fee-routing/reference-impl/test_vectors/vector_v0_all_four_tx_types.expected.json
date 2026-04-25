@@ -1,0 +1,49 @@
+{
+  "description": "Expected output for vector_v0_all_four_tx_types, computed by m013_fee.js computeFee.",
+  "fee_results": [
+    {
+      "tx_hash": "edge-all-types-issuance",
+      "fee_amount_uregen": 20000000,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 6000000,
+        "validator": 8000000,
+        "community": 5000000,
+        "agent": 1000000
+      }
+    },
+    {
+      "tx_hash": "edge-all-types-transfer",
+      "fee_amount_uregen": 10000000,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 3000000,
+        "validator": 4000000,
+        "community": 2500000,
+        "agent": 500000
+      }
+    },
+    {
+      "tx_hash": "edge-all-types-retirement",
+      "fee_amount_uregen": 10000000,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 3000000,
+        "validator": 4000000,
+        "community": 2500000,
+        "agent": 500000
+      }
+    },
+    {
+      "tx_hash": "edge-all-types-market",
+      "fee_amount_uregen": 10000000,
+      "min_fee_applied": false,
+      "distribution": {
+        "burn": 3000000,
+        "validator": 4000000,
+        "community": 2500000,
+        "agent": 500000
+      }
+    }
+  ]
+}

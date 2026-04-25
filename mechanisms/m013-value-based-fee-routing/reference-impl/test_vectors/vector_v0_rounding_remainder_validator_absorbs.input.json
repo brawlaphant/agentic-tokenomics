@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: value chosen so the derived fee does not divide cleanly across the four pools. value=333333333 × 0.01 → rawFee=3333333. burn/community/agent are floored independently; validator is the arithmetic remainder (feeAmount - burn - community - agent). Pins Fee Conservation: burn + validator + community + agent must exactly equal feeAmount regardless of rounding. A refactor that floors validator instead of computing it as the remainder would break this vector.",
+  "fee_config": {
+    "fee_rates": {
+      "CreditIssuance": 0.02,
+      "CreditTransfer": 0.001,
+      "CreditRetirement": 0.005,
+      "MarketplaceTrade": 0.01
+    },
+    "distribution_shares": {
+      "burn": 0.30,
+      "validator": 0.40,
+      "community": 0.25,
+      "agent": 0.05
+    },
+    "min_fee_uregen": 1000000
+  },
+  "fee_events": [
+    {
+      "tx_hash": "edge-rounding-remainder",
+      "tx_type": "MarketplaceTrade",
+      "timestamp": "2026-02-18T12:00:00Z",
+      "value_uregen": 333333333,
+      "payer": "regen1edgerounding"
+    }
+  ]
+}
