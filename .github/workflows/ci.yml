@@ -71,6 +71,14 @@ jobs:
         working-directory: agents
         run: npx tsc --noEmit
 
+      - name: Install agent-001-registry-reviewer/ dependencies
+        working-directory: agent-001-registry-reviewer
+        run: npm ci
+
+      - name: Typecheck agent-001-registry-reviewer/
+        working-directory: agent-001-registry-reviewer
+        run: npx tsc --noEmit
+
       - name: Install agent-002-governance-analyst/ dependencies
         working-directory: agent-002-governance-analyst
         run: npm ci
