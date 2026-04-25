@@ -72,7 +72,11 @@ def compute_confidence_intervals(df, confidence=0.95):
 
     available_metrics = [m for m in metrics if m in df.columns]
 
-    grouped = df.groupby('timestep')[available_metrics]
+    # Subset columns before grouping so pandas 2.x per-metric re-indexing works
+    # (pandas 2.x rejects `grouped[metric]` on an already column-subset groupby
+    # with `IndexError: Column(s) [...] already selected`). Restricting to the
+    # metrics we actually iterate over also avoids materializing unused columns.
+    grouped = df[available_metrics + ['timestep']].groupby('timestep')
 
     ci_results = {}
     for metric in available_metrics:
