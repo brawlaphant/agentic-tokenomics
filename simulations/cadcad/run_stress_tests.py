@@ -329,10 +329,17 @@ def run_stress_scenario(scenario_id, T=260, seed=42):
     # Build cadCAD configuration with stress-aware PSUBs
     sim_state = copy.deepcopy(initial_state)
 
+    # cadCAD 0.5.3's config_sim expects every entry in M to be a list
+    # (scalars do not auto-wrap). For a single-run stress scenario we
+    # wrap each param in [value] so cadCAD sees one config slot.
+    # Without this wrapping the loader raises
+    #   "When sweeping, `M` list lengths should either be 1 and/or equal."
+    # because the schedule entries (lists-of-tuples) have length > 1
+    # while the scalar entries have length 0.
     sim_config = config_sim({
         'T': range(T),
         'N': 1,
-        'M': sim_params,
+        'M': {k: [v] for k, v in sim_params.items()},
     })
 
     exp = Experiment()
@@ -474,6 +481,75 @@ def evaluate_scenario(scenario_id, df):
             'pass': final['S'] > 0 and final['active_validators'] >= 10,
             'value': (f"Supply: {final['S']/1e6:.1f}M, "
                       f"Validators: {int(final['active_validators'])}"),
+        }
+
+    elif scenario_id == 'SC-009':
+        # Gradual decay: system must degrade gracefully, not collapse.
+        # Distinct from SC-001's acute volume crash — the check is that
+        # validator income never drops to zero, and that the system
+        # remains solvent (validators >= 10) for the entire horizon.
+        # A failing graceful_degradation does NOT mean the parameters
+        # are broken; it means the system cannot absorb a chronic 80%
+        # volume decline without subsidy.
+        min_income = df['validator_income_usd'].min()
+        results['checks']['graceful_degradation'] = {
+            'pass': min_income > 0,
+            'value': f'Min validator income across horizon: ${min_income:,.0f}',
+            'threshold': '> $0 (no collapse to zero)',
+        }
+        final_validators = int(df.iloc[-1]['active_validators'])
+        results['checks']['final_validator_set_solvent'] = {
+            'pass': final_validators >= 10,
+            'value': f'Final validators: {final_validators}',
+            'threshold': '>= 10 (Byzantine tolerance)',
+        }
+
+    elif scenario_id == 'SC-010':
+        # Flash crash and recovery: system must survive the 4-week
+        # shock AND return to pre-shock validator income by epoch 70.
+        # If the recovery check fails it means the flash shock triggered
+        # a persistent degradation — the system has hysteresis that a
+        # rapid demand bounce cannot heal.
+        shock = df[(df['timestep'] >= 52) & (df['timestep'] <= 55)]
+        if len(shock) > 0:
+            min_val_in_shock = int(shock['active_validators'].min())
+            results['checks']['survived_flash_shock'] = {
+                'pass': min_val_in_shock >= 10,
+                'value': f'Min validators during shock: {min_val_in_shock}',
+                'threshold': '>= 10',
+            }
+        recovered = df[df['timestep'] >= 70]
+        if len(recovered) > 0:
+            mean_recovery_income = recovered['validator_income_usd'].mean()
+            results['checks']['recovery_to_baseline'] = {
+                'pass': mean_recovery_income >= 10_000,
+                'value': f'Mean post-recovery income: ${mean_recovery_income:,.0f}',
+                'threshold': '>= $10,000',
+            }
+
+    elif scenario_id == 'SC-011':
+        # Ecological multiplier oscillation: the supply curve must
+        # remain bounded (no runaway mint or runaway burn) under
+        # sustained wobble. Resonance between the regrowth rate and
+        # the oscillation period would show up as growing variance in
+        # the minted series — we check the ratio between the max and
+        # mean mint rate over the oscillation window and flag anything
+        # above 3x as potential divergence.
+        wobble = df[(df['timestep'] >= 52) & (df['timestep'] <= 75)]
+        if len(wobble) > 0:
+            max_mint = float(wobble['M_t'].max())
+            mean_mint = float(wobble['M_t'].mean()) or 1.0
+            ratio = max_mint / mean_mint
+            results['checks']['no_mint_divergence'] = {
+                'pass': ratio <= 3.0,
+                'value': f'Max/mean mint ratio during wobble: {ratio:.2f}',
+                'threshold': '<= 3.0 (no resonance)',
+            }
+        final_supply = float(df.iloc[-1]['S'])
+        results['checks']['supply_within_bounds'] = {
+            'pass': 150_000_000 <= final_supply <= 225_000_000,
+            'value': f'Final supply: {final_supply/1e6:.1f}M REGEN',
+            'threshold': '150M <= S <= 225M',
         }
 
     # Overall pass/fail

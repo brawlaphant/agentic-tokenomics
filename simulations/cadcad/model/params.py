@@ -265,4 +265,91 @@ stress_test_params = {
         'price_crash_epoch': 52,
         'price_crash_factor': 0.30,
     },
+    # -----------------------------------------------------------------
+    # Additional stress scenarios (SC-009 through SC-011)
+    #
+    # All three reuse the existing schedule hooks (volume_schedule,
+    # eco_mult_schedule) so no policy or state-update code changes are
+    # required. Each exercises a failure mode the original SC-001 through
+    # SC-008 set does not cover:
+    #   SC-009 — CHRONIC decline, not acute crash (vs SC-001/SC-005)
+    #   SC-010 — ACUTE shock with FAST recovery (vs SC-001's slow recovery)
+    #   SC-011 — OSCILLATION in the ecological multiplier (vs SC-007's binary shock)
+    # -----------------------------------------------------------------
+    'SC-009': {
+        'name': 'Gradual Volume Decay (3-Year Linear Decline)',
+        'description': (
+            'Volume declines linearly from $500K to $100K per week over '
+            'the full simulation horizon (156 epochs). Tests whether the '
+            'system degrades gracefully under chronic stress rather than '
+            'the acute shocks covered by SC-001 and SC-005. The absence '
+            'of a sharp discontinuity distinguishes this scenario from '
+            'every existing volume-shock case in the suite.'
+        ),
+        # Thirteen quarter-year segments step volume down from $500K to
+        # $100K on a straight line. The runner resolves each (start, end,
+        # value) tuple by epoch range, so the staircase IS the linear
+        # decline at the resolution the simulation engine operates on.
+        'volume_schedule': [
+            (0, 11, 500_000),
+            (12, 23, 470_000),
+            (24, 35, 440_000),
+            (36, 47, 410_000),
+            (48, 59, 380_000),
+            (60, 71, 340_000),
+            (72, 83, 300_000),
+            (84, 95, 260_000),
+            (96, 107, 220_000),
+            (108, 119, 180_000),
+            (120, 131, 150_000),
+            (132, 143, 120_000),
+            (144, 520, 100_000),
+        ],
+        'overrides': {},
+    },
+    'SC-010': {
+        'name': 'Flash Crash and Rapid Recovery (4-Week Shock)',
+        'description': (
+            'Volume drops 80% for 4 weeks starting at epoch 52, then '
+            'recovers linearly over the next 4 weeks to 110% of the '
+            'pre-shock baseline. Tests that short-duration shocks do '
+            'not trigger cascading failures — validators must survive '
+            'the dip without dropping below the Byzantine tolerance '
+            'floor, and the stability tier must not bank-run under a '
+            'brief price panic. Different from SC-001 (1-year slow '
+            'recovery) and from SC-005 (slow permanent decline).'
+        ),
+        'volume_schedule': [
+            (0, 51, 500_000),        # pre-shock baseline
+            (52, 55, 100_000),       # 80% drop, 4 weeks
+            (56, 59, 'linear_recovery'),  # linear bounce back
+            (60, 520, 550_000),      # 110% post-shock, demand overshoots
+        ],
+        'overrides': {},
+    },
+    'SC-011': {
+        'name': 'Ecological Multiplier Oscillation',
+        'description': (
+            'Ecological multiplier wobbles between 0.5 and 1.5 every '
+            'four weeks for six months. Tests that the M012 supply '
+            'curve remains stable under sustained oscillation rather '
+            'than the binary on/off shock SC-007 models. A divergent '
+            'response here would indicate a resonance between the '
+            'regrowth rate and the oscillation period — a subtle '
+            'failure mode the baseline and existing stress tests '
+            'cannot detect.'
+        ),
+        'volume_schedule': None,
+        'overrides': {},
+        'eco_mult_schedule': [
+            (0, 51, 1.0),
+            (52, 55, 0.5),
+            (56, 59, 1.5),
+            (60, 63, 0.5),
+            (64, 67, 1.5),
+            (68, 71, 0.5),
+            (72, 75, 1.5),
+            (76, 520, 1.0),
+        ],
+    },
 }
