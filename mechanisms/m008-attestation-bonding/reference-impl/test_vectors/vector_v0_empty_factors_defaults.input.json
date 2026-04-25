@@ -1,0 +1,15 @@
+{
+  "_comment": "Edge case: factors object is empty. Verifies the attester_reputation nullish-coalescing default (300) and the confidence default behavior — iri_resolvable and type_recognized default to 'available' because their guard is `!== false`.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-empty-factors",
+        "attestation_type": "BaselineMeasurement",
+        "attestation_iri": "koi://attestation/edge-empty-factors",
+        "bond": { "amount": "0", "denom": "uregen" }
+      },
+      "factors": {}
+    }
+  ]
+}

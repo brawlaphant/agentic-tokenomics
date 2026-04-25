@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: every factor at 0 with every data-availability flag explicitly false. Verifies that the score floor holds at 0 and confidence lands at 0 when no data is available.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-all-zero",
+        "attestation_type": "ProjectBoundary",
+        "attestation_iri": "koi://attestation/edge-all-zero",
+        "bond": { "amount": "0", "denom": "uregen" }
+      },
+      "factors": {
+        "bond_adequacy": 0,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 0,
+        "reputation_available": false,
+        "iri_resolvable": false,
+        "has_prior_attestations": false,
+        "type_recognized": false
+      }
+    }
+  ]
+}

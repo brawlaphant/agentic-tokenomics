@@ -1,0 +1,15 @@
+{
+  "_comment": "0.30*0 + 0.30*0 + 0.25*0 + 0.15*0 = 0. All four confidence flags are explicitly false (iri_resolvable=false and type_recognized=false both fail the `!== false` guards), so confidence is 0.",
+  "scores": [
+    {
+      "score": 0,
+      "confidence": 0,
+      "factors": {
+        "bond_adequacy": 0,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 0
+      }
+    }
+  ]
+}

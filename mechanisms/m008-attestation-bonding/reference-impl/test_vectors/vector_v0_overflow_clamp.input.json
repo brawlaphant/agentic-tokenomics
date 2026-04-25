@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: deliberate out-of-range inputs. bond_adequacy=1500 clamps to 1000, attester_reputation=-200 clamps to 0, evidence_completeness=2000 clamps to 1000, type_risk=500 stays.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "attestations": [
+    {
+      "attestation": {
+        "attestation_id": "edge-overflow-clamp",
+        "attestation_type": "CreditIssuanceClaim",
+        "attestation_iri": "koi://attestation/edge-overflow-clamp",
+        "bond": { "amount": "4000", "denom": "uregen" }
+      },
+      "factors": {
+        "bond_adequacy": 1500,
+        "attester_reputation": -200,
+        "evidence_completeness": 2000,
+        "type_risk": 500,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_attestations": true,
+        "type_recognized": true
+      }
+    }
+  ]
+}

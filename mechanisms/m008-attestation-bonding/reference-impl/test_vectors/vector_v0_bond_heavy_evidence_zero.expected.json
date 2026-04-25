@@ -1,0 +1,15 @@
+{
+  "_comment": "0.30*1000 + 0.30*0 + 0.25*0 + 0.15*1000 = 300 + 0 + 0 + 150 = 450. Even with bond and type_risk both at ceiling, the composite stays well below any approval threshold — evidence and reputation must pull their weight too. Confidence = 4/4 = 1000.",
+  "scores": [
+    {
+      "score": 450,
+      "confidence": 1000,
+      "factors": {
+        "bond_adequacy": 1000,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 1000
+      }
+    }
+  ]
+}

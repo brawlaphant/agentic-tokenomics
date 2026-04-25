@@ -1,0 +1,15 @@
+{
+  "_comment": "With factors={}, the nullish-coalescing defaults kick in: bond_adequacy 0, attester_reputation 300, evidence_completeness 0, type_risk 0. 0.30*0 + 0.30*300 + 0.25*0 + 0.15*0 = 90. Confidence: reputation_available undefined (no), iri_resolvable undefined (`undefined !== false` passes → yes), has_prior_attestations undefined (no), type_recognized undefined (`undefined !== false` passes → yes). 2/4 = 500.",
+  "scores": [
+    {
+      "score": 90,
+      "confidence": 500,
+      "factors": {
+        "bond_adequacy": 0,
+        "attester_reputation": 300,
+        "evidence_completeness": 0,
+        "type_risk": 0
+      }
+    }
+  ]
+}

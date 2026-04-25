@@ -1,0 +1,15 @@
+{
+  "_comment": "0.30*0 + 0.30*0 + 0.25*0 + 0.15*1000 = 150. Explicit attester_reputation=0 overrides the nullish-coalescing default of 300 (0 is not nullish). Confidence: reputation_available=false (no), iri_resolvable=true (yes), has_prior_attestations=false (no), type_recognized=true (yes). 2/4 = 500.",
+  "scores": [
+    {
+      "score": 150,
+      "confidence": 500,
+      "factors": {
+        "bond_adequacy": 0,
+        "attester_reputation": 0,
+        "evidence_completeness": 0,
+        "type_risk": 1000
+      }
+    }
+  ]
+}
