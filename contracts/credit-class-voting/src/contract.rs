@@ -571,6 +571,7 @@ fn execute_finalize_proposal(
 
 // ── Update Config ─────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,

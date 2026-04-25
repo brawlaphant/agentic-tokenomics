@@ -789,6 +789,7 @@ fn execute_cancel(
     Ok(resp)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,

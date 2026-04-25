@@ -14,6 +14,8 @@ schemars = { workspace = true }
 serde = { workspace = true }
 attestation-bonding = { path = "../attestation-bonding", features = ["library"] }
 credit-class-voting = { path = "../credit-class-voting", features = ["library"] }
+dynamic-supply = { path = "../dynamic-supply", features = ["library"] }
+fee-router = { path = "../fee-router", features = ["library"] }
 marketplace-curation = { path = "../marketplace-curation", features = ["library"] }
 service-escrow = { path = "../service-escrow", features = ["library"] }
 contribution-rewards = { path = "../contribution-rewards", features = ["library"] }

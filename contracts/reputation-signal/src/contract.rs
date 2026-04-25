@@ -183,6 +183,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 // Execute handlers
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn exec_submit_signal(
     deps: DepsMut,
     env: Env,
@@ -562,6 +563,7 @@ fn exec_invalidate_signal(
         .add_attribute("rationale", &rationale))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn exec_update_config(
     deps: DepsMut,
     info: MessageInfo,

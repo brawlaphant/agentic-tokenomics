@@ -401,6 +401,7 @@ fn execute_claim_matured(
         .add_attribute("total", total_return))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_record_activity(
     deps: DepsMut,
     info: MessageInfo,

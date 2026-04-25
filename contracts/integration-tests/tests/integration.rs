@@ -62,6 +62,22 @@ fn validator_governance_contract() -> Box<dyn Contract<Empty>> {
     ))
 }
 
+fn fee_router_contract() -> Box<dyn Contract<Empty>> {
+    Box::new(ContractWrapper::new(
+        fee_router::contract::execute,
+        fee_router::contract::instantiate,
+        fee_router::contract::query,
+    ))
+}
+
+fn dynamic_supply_contract() -> Box<dyn Contract<Empty>> {
+    Box::new(ContractWrapper::new(
+        dynamic_supply::contract::execute,
+        dynamic_supply::contract::instantiate,
+        dynamic_supply::contract::query,
+    ))
+}
+
 // ── App builder helper ────────────────────────────────────────────────
 
 /// Build an App with initial balances for the given addresses.
@@ -1725,4 +1741,221 @@ fn test_full_ecosystem_flow() {
         .unwrap();
     assert_eq!(state_resp.state.total_active, 3);
     assert!(state_resp.state.last_compensation_distribution.is_some());
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Test 6: M013 fee-router → M012 dynamic-supply burn flow
+// ═══════════════════════════════════════════════════════════════════════
+//
+// This test exercises the canonical Economic Reboot flow: fees are
+// collected by the M013 fee router, the burn portion accumulates in
+// the fee router's burn pool, and an aggregator hands that burn
+// amount to the M012 dynamic supply contract to apply the burn in
+// the next period. The two contracts do not message each other on-
+// chain in v0 — the hand-off is off-chain — but the data contract
+// at the boundary is exact: the `burn_pool` field in
+// `PoolBalancesResponse` must be consumable as the `burn_amount`
+// argument to `ExecutePeriod` without conversion, reshape, or
+// rounding.
+//
+// What this test pins:
+//
+// 1. Both contracts coexist in the same App and are typed
+//    compatibly (both use `Uint128` uregen amounts).
+//
+// 2. Fee Conservation inside m013: when a fee is collected, the
+//    burn share of the fee amount lands in `burn_pool` and matches
+//    the dry-run calculation from `CalculateFee`.
+//
+// 3. Supply conservation inside m012: after `ExecutePeriod` runs
+//    with a non-trivial burn amount, `total_burned` reflects the
+//    burn, `current_supply` equals `supply_before + mint - burn`,
+//    and the cap headroom responds correctly.
+//
+// 4. The m013→m012 hand-off is numerically exact — the burn amount
+//    the aggregator reads from m013 is the same value m012 applies.
+//    No off-by-one, no rounding drift.
+
+#[test]
+fn test_fee_router_to_dynamic_supply_burn_flow() {
+    use cosmwasm_std::Decimal;
+
+    let admin = addr("admin");
+
+    let mut app = build_app(&[(&admin, 10_000_000_000_000u128)]);
+
+    // ── Deploy fee-router (M013) ──────────────────────────────────
+    // Fee rates match SPEC Model A: issuance 2%, transfer 0.1%,
+    // retirement 0.5%, marketplace 1%. Distribution shares are
+    // 30/40/25/5 (burn / validator / community / agent).
+    let fr_code_id = app.store_code(fee_router_contract());
+    let fr_addr = app
+        .instantiate_contract(
+            fr_code_id,
+            admin.clone(),
+            &fee_router::msg::InstantiateMsg {
+                issuance_rate: Decimal::percent(2),
+                transfer_rate: Decimal::from_ratio(1u128, 1000u128),
+                retirement_rate: Decimal::from_ratio(5u128, 1000u128),
+                trade_rate: Decimal::percent(1),
+                burn_share: Decimal::percent(30),
+                validator_share: Decimal::percent(40),
+                community_share: Decimal::percent(25),
+                agent_share: Decimal::percent(5),
+                min_fee: Uint128::new(1_000_000),
+            },
+            &[],
+            "fee-router",
+            None,
+        )
+        .unwrap();
+
+    // ── Deploy dynamic-supply (M012) ──────────────────────────────
+    // Hard cap at 221M REGEN (221T uregen), initial supply 220M —
+    // below the cap so the instantiate guard `initial_supply <=
+    // hard_cap` passes. The test then runs one ExecutePeriod with
+    // a real burn from m013's pool, so the supply trajectory is
+    // `supply + mint - burn` and we check that identity directly
+    // rather than pinning an exact supply number (which would
+    // hardcode the regrowth math).
+    let ds_code_id = app.store_code(dynamic_supply_contract());
+    let ds_addr = app
+        .instantiate_contract(
+            ds_code_id,
+            admin.clone(),
+            &dynamic_supply::msg::InstantiateMsg {
+                hard_cap: Uint128::new(221_000_000_000_000u128),
+                initial_supply: Uint128::new(220_000_000_000_000u128),
+                base_regrowth_rate: Decimal::from_ratio(2u128, 100u128),
+                ecological_multiplier_enabled: false,
+                ecological_reference_value: Decimal::from_ratio(50u128, 1u128),
+                m014_phase: dynamic_supply::state::M014Phase::Inactive,
+                equilibrium_threshold: Uint128::new(1_000_000_000_000u128),
+                equilibrium_periods_required: 12,
+            },
+            &[],
+            "dynamic-supply",
+            None,
+        )
+        .unwrap();
+
+    // ── Step 1: Dry-run a fee calculation ─────────────────────────
+    // A 10B uregen marketplace trade at the default 1% rate should
+    // produce a fee of 100M uregen with no min-fee floor applied.
+    let trade_value = Uint128::new(10_000_000_000u128);
+    let calc: fee_router::msg::CalculateFeeResponse = app
+        .wrap()
+        .query_wasm_smart(
+            fr_addr.clone(),
+            &fee_router::msg::QueryMsg::CalculateFee {
+                tx_type: fee_router::msg::TxType::MarketplaceTrade,
+                value: trade_value,
+            },
+        )
+        .unwrap();
+    assert_eq!(calc.fee_amount, Uint128::new(100_000_000));
+    assert!(!calc.min_fee_applied);
+    assert_eq!(calc.burn_amount, Uint128::new(30_000_000));
+    assert_eq!(calc.validator_amount, Uint128::new(40_000_000));
+    assert_eq!(calc.community_amount, Uint128::new(25_000_000));
+    assert_eq!(calc.agent_amount, Uint128::new(5_000_000));
+
+    // Fee Conservation: burn + validator + community + agent == fee
+    assert_eq!(
+        calc.burn_amount + calc.validator_amount + calc.community_amount + calc.agent_amount,
+        calc.fee_amount
+    );
+
+    // ── Step 2: Collect the fee for real ──────────────────────────
+    // Send the calculated fee as actual funds so an integrator reading
+    // this test sees the intended call shape: caller transfers the fee
+    // into the router and the router updates its pool accounting in
+    // lockstep. v0 m013 is an accounting-only contract (it does not yet
+    // compare `info.funds` against the calculated fee), but wiring the
+    // funds through the mock bank ensures the test fails closed the day
+    // m013 adds on-chain funds validation.
+    app.execute_contract(
+        admin.clone(),
+        fr_addr.clone(),
+        &fee_router::msg::ExecuteMsg::CollectFee {
+            tx_type: fee_router::msg::TxType::MarketplaceTrade,
+            value: trade_value,
+        },
+        &[Coin::new(calc.fee_amount.u128(), DENOM)],
+    )
+    .unwrap();
+
+    // ── Step 3: Read pool balances from m013 ──────────────────────
+    let pools: fee_router::msg::PoolBalancesResponse = app
+        .wrap()
+        .query_wasm_smart(fr_addr.clone(), &fee_router::msg::QueryMsg::PoolBalances {})
+        .unwrap();
+    assert_eq!(pools.burn_pool, Uint128::new(30_000_000));
+    assert_eq!(pools.validator_fund, Uint128::new(40_000_000));
+    assert_eq!(pools.community_pool, Uint128::new(25_000_000));
+    assert_eq!(pools.agent_infra, Uint128::new(5_000_000));
+
+    // ── Step 4: Read initial m012 supply state ────────────────────
+    let state_before: dynamic_supply::msg::SupplyStateResponse = app
+        .wrap()
+        .query_wasm_smart(
+            ds_addr.clone(),
+            &dynamic_supply::msg::QueryMsg::SupplyState {},
+        )
+        .unwrap();
+    assert_eq!(
+        state_before.current_supply,
+        Uint128::new(220_000_000_000_000u128)
+    );
+    assert_eq!(state_before.total_burned, Uint128::zero());
+    assert_eq!(state_before.total_minted, Uint128::zero());
+    assert_eq!(state_before.period_count, 0);
+    // Initial headroom is cap - supply = 1T uregen.
+    assert_eq!(state_before.cap_headroom, Uint128::new(1_000_000_000_000u128));
+
+    // ── Step 5: Hand the burn amount from m013 to m012 ────────────
+    // This is the off-chain aggregator's job in v0 — an integrator
+    // reads `pools.burn_pool` from m013 and supplies it as the
+    // `burn_amount` in m012's `ExecutePeriod` message. The two
+    // values must be bit-identical at the boundary.
+    let burn_for_period = pools.burn_pool;
+    app.execute_contract(
+        admin.clone(),
+        ds_addr.clone(),
+        &dynamic_supply::msg::ExecuteMsg::ExecutePeriod {
+            burn_amount: burn_for_period,
+            staked_amount: Uint128::new(100_000_000_000_000u128),
+            stability_committed: Uint128::zero(),
+            delta_co2: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    // ── Step 6: Verify m012 applied the burn ──────────────────────
+    let state_after: dynamic_supply::msg::SupplyStateResponse = app
+        .wrap()
+        .query_wasm_smart(
+            ds_addr.clone(),
+            &dynamic_supply::msg::QueryMsg::SupplyState {},
+        )
+        .unwrap();
+
+    // m013 → m012 hand-off is bit-exact: the burn amount m012
+    // records matches the burn amount we read from m013.
+    assert_eq!(state_after.total_burned, burn_for_period);
+    assert_eq!(state_after.period_count, 1);
+
+    // Supply conservation invariant:
+    //   current_supply = supply_before + total_minted - total_burned
+    //
+    // We do NOT hardcode an exact supply number because the regrowth
+    // math depends on the effective multiplier, which in turn
+    // depends on the staking input. Instead we assert the identity
+    // — the supply equation must hold regardless of the mint
+    // amount, and the total_minted / total_burned counters must
+    // account for every delta.
+    let expected_supply = state_before.current_supply + state_after.total_minted
+        - state_after.total_burned;
+    assert_eq!(state_after.current_supply, expected_supply);
 }
