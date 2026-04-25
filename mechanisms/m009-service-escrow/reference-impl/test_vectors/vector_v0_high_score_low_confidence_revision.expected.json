@@ -1,0 +1,16 @@
+{
+  "_comment": "0.40*1000 + 0.25*1000 + 0.20*1000 + 0.15*1000 = 1000. Confidence = 2/4 * 1000 = 500. Not APPROVE (confidence < 750), not FLAG_FOR_CLIENT (score >= 400 AND confidence >= 250), so NEEDS_REVISION.",
+  "scores": [
+    {
+      "score": 1000,
+      "confidence": 500,
+      "recommendation": "NEEDS_REVISION",
+      "factors": {
+        "deliverable_quality": 1000,
+        "evidence_completeness": 1000,
+        "milestone_consistency": 1000,
+        "provider_reputation": 1000
+      }
+    }
+  ]
+}

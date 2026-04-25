@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: intentional breaches of the 0..1000 range. deliverable_quality=1500 clamps to 1000, evidence_completeness=-100 clamps to 0, milestone_consistency=2000 clamps to 1000, provider_reputation=500 stays. Pins that the clamp runs before weighting.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "milestones": [
+    {
+      "milestone": {
+        "milestone_id": "edge-overflow-clamp",
+        "escrow_id": "escrow-edge-006",
+        "provider": "regen1edgeoverflow",
+        "amount": { "amount": "2500", "denom": "uregen" }
+      },
+      "factors": {
+        "deliverable_quality": 1500,
+        "evidence_completeness": -100,
+        "milestone_consistency": 2000,
+        "provider_reputation": 500,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_milestones": true,
+        "spec_available": true
+      }
+    }
+  ]
+}

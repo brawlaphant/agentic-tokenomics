@@ -1,0 +1,24 @@
+{
+  "_comment": "Edge case: score lands at 399 (one point below the FLAG_FOR_CLIENT floor of 400). Pins that the FLAG predicate is strict (score < 400) — a future refactor cannot quietly change < to <= without this test failing.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "milestones": [
+    {
+      "milestone": {
+        "milestone_id": "edge-boundary-flag-399",
+        "escrow_id": "escrow-edge-003",
+        "provider": "regen1edgeflag399",
+        "amount": { "amount": "1500", "denom": "uregen" }
+      },
+      "factors": {
+        "deliverable_quality": 399,
+        "evidence_completeness": 400,
+        "milestone_consistency": 400,
+        "provider_reputation": 399,
+        "reputation_available": true,
+        "iri_resolvable": true,
+        "has_prior_milestones": true,
+        "spec_available": true
+      }
+    }
+  ]
+}

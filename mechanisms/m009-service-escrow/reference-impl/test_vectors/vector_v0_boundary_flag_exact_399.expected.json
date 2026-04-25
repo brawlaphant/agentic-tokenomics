@@ -1,0 +1,16 @@
+{
+  "_comment": "0.40*399 + 0.25*400 + 0.20*400 + 0.15*399 = 159.6 + 100 + 80 + 59.85 = 399.45 → rounds to 399. Score is strictly less than 400, so FLAG_FOR_CLIENT fires even with full 1000 confidence.",
+  "scores": [
+    {
+      "score": 399,
+      "confidence": 1000,
+      "recommendation": "FLAG_FOR_CLIENT",
+      "factors": {
+        "deliverable_quality": 399,
+        "evidence_completeness": 400,
+        "milestone_consistency": 400,
+        "provider_reputation": 399
+      }
+    }
+  ]
+}

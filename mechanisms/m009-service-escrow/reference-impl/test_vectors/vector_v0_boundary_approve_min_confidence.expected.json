@@ -1,0 +1,16 @@
+{
+  "_comment": "0.40*700 + 0.25*700 + 0.20*700 + 0.15*700 = 280 + 175 + 140 + 105 = 700. Confidence = 3/4 * 1000 = 750. APPROVE requires BOTH score >= 700 AND confidence >= 750; this vector pins equality on both boundaries.",
+  "scores": [
+    {
+      "score": 700,
+      "confidence": 750,
+      "recommendation": "APPROVE",
+      "factors": {
+        "deliverable_quality": 700,
+        "evidence_completeness": 700,
+        "milestone_consistency": 700,
+        "provider_reputation": 700
+      }
+    }
+  ]
+}

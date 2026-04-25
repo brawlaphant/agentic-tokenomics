@@ -1,0 +1,16 @@
+{
+  "_comment": "After clamping: deliverable_quality 1000, evidence_completeness 0, milestone_consistency 1000, provider_reputation 500. 0.40*1000 + 0.25*0 + 0.20*1000 + 0.15*500 = 400 + 0 + 200 + 75 = 675. Confidence = 4/4 = 1000. Not APPROVE (score < 700), not FLAG (score >= 400 AND confidence >= 250), so NEEDS_REVISION.",
+  "scores": [
+    {
+      "score": 675,
+      "confidence": 1000,
+      "recommendation": "NEEDS_REVISION",
+      "factors": {
+        "deliverable_quality": 1000,
+        "evidence_completeness": 0,
+        "milestone_consistency": 1000,
+        "provider_reputation": 500
+      }
+    }
+  ]
+}
