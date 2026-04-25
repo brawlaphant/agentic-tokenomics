@@ -1,0 +1,17 @@
+{
+  "_comment": "0.4*300 + 0.3*300 + 0.2*300 + 0.1*290 = 120 + 90 + 60 + 29 = 299. Score is strictly less than 300 AND confidence (1000) is strictly greater than 900, so the reject branch fires.",
+  "scores": [
+    {
+      "proposal_id": "edge-reject-exact-299",
+      "score": 299,
+      "confidence": 1000,
+      "recommendation": "REJECT",
+      "factors": {
+        "methodology_quality": 300,
+        "admin_reputation": 300,
+        "novelty": 300,
+        "completeness": 290
+      }
+    }
+  ]
+}

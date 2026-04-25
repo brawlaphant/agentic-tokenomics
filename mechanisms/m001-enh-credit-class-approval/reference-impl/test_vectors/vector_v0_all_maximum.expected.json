@@ -1,0 +1,17 @@
+{
+  "_comment": "0.4*1000 + 0.3*1000 + 0.2*1000 + 0.1*1000 = 1000. Clamps output at the 0..1000 ceiling and fires APPROVE.",
+  "scores": [
+    {
+      "proposal_id": "edge-all-maximum",
+      "score": 1000,
+      "confidence": 1000,
+      "recommendation": "APPROVE",
+      "factors": {
+        "methodology_quality": 1000,
+        "admin_reputation": 1000,
+        "novelty": 1000,
+        "completeness": 1000
+      }
+    }
+  ]
+}

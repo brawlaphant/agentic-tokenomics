@@ -85,6 +85,11 @@ function computeConfidence(factors) {
 }
 
 // --- Self-test: run with `node m001_score.js` ---
+//
+// Discovers every *.input.json file in the test_vectors/ directory and
+// checks each one against its matching *.expected.json sibling. Adding
+// a new edge-case vector is a zero-touch change to this file — just
+// drop both files into test_vectors/ and rerun.
 const isMain = typeof process !== "undefined" &&
   process.argv[1] &&
   (process.argv[1].endsWith("m001_score.js") || process.argv[1].endsWith("m001_score"));
@@ -95,30 +100,75 @@ if (isMain) {
   const url = await import("node:url");
 
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const inputPath = path.join(__dirname, "test_vectors", "vector_v0_sample.input.json");
-  const expectedPath = path.join(__dirname, "test_vectors", "vector_v0_sample.expected.json");
-
-  const input = JSON.parse(fs.readFileSync(inputPath, "utf8"));
-  const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
-
-  const results = input.proposals.map(p => computeM001Score({
-    proposal: p.proposal,
-    factors: p.factors
-  }));
+  const vectorsDir = path.join(__dirname, "test_vectors");
+  const entries = fs.readdirSync(vectorsDir);
+  const inputFiles = entries
+    .filter((f) => f.endsWith(".input.json"))
+    .sort();
 
   let pass = true;
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    const e = expected.scores[i];
-    if (r.score !== e.score || r.recommendation !== e.recommendation) {
-      console.error(`FAIL proposal[${i}]: got score=${r.score} rec=${r.recommendation}, expected score=${e.score} rec=${e.recommendation}`);
+  let totalChecked = 0;
+
+  for (const inputFile of inputFiles) {
+    const name = inputFile.replace(".input.json", "");
+    const expectedFile = `${name}.expected.json`;
+    if (!entries.includes(expectedFile)) {
+      console.error(`MISSING expected file for ${inputFile}`);
       pass = false;
+      continue;
+    }
+
+    const input = JSON.parse(fs.readFileSync(path.join(vectorsDir, inputFile), "utf8"));
+    const expected = JSON.parse(fs.readFileSync(path.join(vectorsDir, expectedFile), "utf8"));
+
+    const results = input.proposals.map((p) => computeM001Score({
+      proposal: p.proposal,
+      factors: p.factors
+    }));
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const e = expected.scores[i];
+      if (!e) {
+        console.error(`MISSING expected[${i}] in ${expectedFile}`);
+        pass = false;
+        continue;
+      }
+      const factorsMatch =
+        e.factors === undefined ||
+        JSON.stringify(r.factors) === JSON.stringify(e.factors);
+      const confidenceMatch =
+        e.confidence === undefined || r.confidence === e.confidence;
+      if (
+        r.score !== e.score ||
+        r.recommendation !== e.recommendation ||
+        !confidenceMatch ||
+        !factorsMatch
+      ) {
+        console.error(
+          `FAIL ${name}[${i}]: got ${JSON.stringify({
+            score: r.score,
+            confidence: r.confidence,
+            recommendation: r.recommendation,
+            factors: r.factors,
+          })}, expected ${JSON.stringify({
+            score: e.score,
+            confidence: e.confidence,
+            recommendation: e.recommendation,
+            factors: e.factors,
+          })}`
+        );
+        pass = false;
+      } else {
+        totalChecked++;
+      }
     }
   }
 
   if (pass) {
-    console.log("m001_score self-test: PASS");
-    console.log(JSON.stringify({ scores: results }, null, 2));
+    console.log(
+      `m001_score self-test: PASS (${totalChecked} proposals across ${inputFiles.length} vectors)`
+    );
   } else {
     process.exit(1);
   }

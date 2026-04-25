@@ -1,0 +1,17 @@
+{
+  "_comment": "0.4*300 + 0.3*300 + 0.2*300 + 0.1*300 = 300. Score is NOT strictly less than 300 and is NOT >= 700, so the CONDITIONAL branch fires even though the confidence is at ceiling.",
+  "scores": [
+    {
+      "proposal_id": "edge-conditional-exact-300",
+      "score": 300,
+      "confidence": 1000,
+      "recommendation": "CONDITIONAL",
+      "factors": {
+        "methodology_quality": 300,
+        "admin_reputation": 300,
+        "novelty": 300,
+        "completeness": 300
+      }
+    }
+  ]
+}
