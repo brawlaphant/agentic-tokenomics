@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: no factors available. availableCount=0, so confidence is 0.0, the performance score is 0.0 (totalWeight=0 short-circuits to 0.0 instead of producing NaN), and the below_performance_threshold flag does NOT fire because its check is guarded by `availableCount > 0`. Pins the 'no data' state as distinct from the 'poor performance' state — a validator with no data is not put on probation.",
+  "validators": [
+    {
+      "address": "regenvaloper1edgezerofactors",
+      "factors": {
+        "uptime": null,
+        "governance_participation": null,
+        "ecosystem_contribution": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: uptime missing, but governance_participation and ecosystem_contribution both at 1.0. Pins two behaviors: (1) re-normalization produces a perfect 1.0 composite from only the two available factors (0.3 + 0.3) / 0.6 = 1.0; (2) below_uptime_minimum does NOT fire because the check is guarded by `resolvedFactors.uptime !== null`. Missing data should not be treated as bad data.",
+  "validators": [
+    {
+      "address": "regenvaloper1edgemissinguptime",
+      "factors": {
+        "uptime": null,
+        "governance_participation": 1.0,
+        "ecosystem_contribution": 1.0
+      }
+    }
+  ]
+}

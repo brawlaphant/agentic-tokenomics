@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: only the uptime factor is present. Pins the re-normalization path — weightedSum/totalWeight = (uptime * 0.4) / 0.4 = uptime. Also pins that confidence drops to 0.33 with availableCount=1 and that below_uptime_minimum still fires on the raw uptime value (0.95 is strictly less than 0.995).",
+  "validators": [
+    {
+      "address": "regenvaloper1edgesingleuptime",
+      "factors": {
+        "uptime": 0.95,
+        "governance_participation": null,
+        "ecosystem_contribution": null
+      }
+    }
+  ]
+}

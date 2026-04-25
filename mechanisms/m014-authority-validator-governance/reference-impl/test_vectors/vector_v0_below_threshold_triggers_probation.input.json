@@ -1,0 +1,14 @@
+{
+  "as_of": "2026-02-18T12:00:00Z",
+  "description": "Edge case: every factor at 0.5. Pins that both below_performance_threshold (< 0.70) and below_uptime_minimum (< 0.995) fire, and that probation_recommended fires as the derived flag when either primary flag is set.",
+  "validators": [
+    {
+      "address": "regenvaloper1edgebelow",
+      "factors": {
+        "uptime": 0.5,
+        "governance_participation": 0.5,
+        "ecosystem_contribution": 0.5
+      }
+    }
+  ]
+}
