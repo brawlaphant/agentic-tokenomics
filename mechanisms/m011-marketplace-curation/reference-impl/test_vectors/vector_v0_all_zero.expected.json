@@ -1,0 +1,18 @@
+{
+  "_comment": "0.25*0 + 0.20*0 + 0.15*0 + 0.15*0 + 0.10*0 + 0.10*0 + 0.05*0 = 0. Confidence = 0/7 = 0, because vintage_known=false flips its `!== false` guard (unset would have counted as available).",
+  "scores": [
+    {
+      "score": 0,
+      "confidence": 0,
+      "factors": {
+        "project_reputation": 0,
+        "class_reputation": 0,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 0
+      }
+    }
+  ]
+}

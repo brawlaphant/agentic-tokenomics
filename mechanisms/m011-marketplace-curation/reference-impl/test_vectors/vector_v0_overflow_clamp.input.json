@@ -1,0 +1,31 @@
+{
+  "_comment": "Edge case: every factor at 1500 (above the ceiling) and some at -500 (below the floor). Verifies that the clamp runs before weighting.",
+  "as_of": "2026-02-18T12:00:00Z",
+  "batches": [
+    {
+      "batch": {
+        "batch_denom": "EDGE-CLAMP-001",
+        "project_id": "P-regen-edge-clamp",
+        "class_id": "C",
+        "issuer": "regen1edgeclamp",
+        "seller": "regen1edgeclampseller"
+      },
+      "factors": {
+        "project_reputation": 1500,
+        "class_reputation": 1500,
+        "vintage_freshness": -500,
+        "verification_recency": 1500,
+        "seller_reputation": -100,
+        "price_fairness": 1500,
+        "additionality_confidence": 1500,
+        "project_reputation_available": true,
+        "class_reputation_available": true,
+        "seller_reputation_available": true,
+        "vintage_known": true,
+        "verification_date_known": true,
+        "price_data_available": true,
+        "methodology_available": true
+      }
+    }
+  ]
+}

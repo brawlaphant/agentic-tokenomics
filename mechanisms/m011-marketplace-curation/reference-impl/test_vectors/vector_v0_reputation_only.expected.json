@@ -1,0 +1,18 @@
+{
+  "_comment": "0.25*1000 + 0.20*1000 + rest*0 = 250 + 200 = 450. Pins the combined top-two weight at 0.45. Confidence: project_reputation_available (yes), class_reputation_available (yes), seller_reputation_available (no), vintage_known=true (yes), verification_date_known (no), price_data_available (no), methodology_available (no) = 3/7 → round(3/7 * 1000) = 429.",
+  "scores": [
+    {
+      "score": 450,
+      "confidence": 429,
+      "factors": {
+        "project_reputation": 1000,
+        "class_reputation": 1000,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 0
+      }
+    }
+  ]
+}

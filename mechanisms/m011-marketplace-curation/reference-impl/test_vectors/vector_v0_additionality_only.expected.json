@@ -1,0 +1,18 @@
+{
+  "_comment": "0.05*1000 = 50. Pins additionality_confidence as the smallest weight (0.05). Confidence: only vintage_known=true and methodology_available=true count → 2/7 → round(2/7 * 1000) = 286.",
+  "scores": [
+    {
+      "score": 50,
+      "confidence": 286,
+      "factors": {
+        "project_reputation": 0,
+        "class_reputation": 0,
+        "vintage_freshness": 0,
+        "verification_recency": 0,
+        "seller_reputation": 0,
+        "price_fairness": 0,
+        "additionality_confidence": 1000
+      }
+    }
+  ]
+}
