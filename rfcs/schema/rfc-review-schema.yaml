@@ -1,0 +1,223 @@
+# RFC Review Schema
+# Canonical machine-readable review schema for the agentic-tokenomics RFC
+# process. An agent or human reviewer runs the rules below over an RFC
+# document and emits a structured judgment per rfc-review-judgment.yaml.
+#
+# Source of truth: rfcs/GRADUATION_RULES.md
+
+meta:
+  schema_version: "0.1"
+  applies_to: rfcs/RFC-*.md
+  review_authority: "any agent or human reviewer; binding decisions still require the human roles in GRADUATION_RULES.md §Author roles"
+  source: rfcs/GRADUATION_RULES.md
+
+categories:
+  process: "structural / format / completeness checks; mostly mechanical"
+  content: "substantive claim/evidence/methodology checks; require LLM judgment"
+
+severities:
+  blocker: "rule failure prevents graduation; verdict cannot be 'pass'"
+  warning: "rule failure does not block but must be acknowledged in judgment"
+  info:    "advisory; does not affect verdict"
+
+# ─────────────────────────────────────────────────────────────────
+# Always-on rules (apply to any RFC at any state >= draft)
+# ─────────────────────────────────────────────────────────────────
+
+always:
+  - id: R-HEADER-001
+    category: process
+    severity: blocker
+    rule: "Header §0 contains all required fields with non-empty values"
+    required_fields: [id, title, status, authors, sponsor, audience, last_updated]
+    passes_when: "every required field is present and non-empty"
+    fails_when:  "any required field is missing or blank"
+
+  - id: R-HEADER-002
+    category: process
+    severity: blocker
+    rule: "Sponsor is human, not an agent ID"
+    passes_when: "sponsor field resolves to a human contributor"
+    fails_when:  "sponsor matches agent-id pattern (codex-*, eliza-*, brawlaphant, *-bot)"
+    cite: "GRADUATION_RULES.md §Author roles"
+
+  - id: R-HEADER-003
+    category: process
+    severity: blocker
+    rule: "Status field is one of the allowed lifecycle states"
+    allowed_values: [draft, forum-posted, ratified, enacted, parked, withdrawn, superseded]
+    passes_when: "status is in allowed_values"
+    fails_when:  "status is anything else"
+
+  - id: R-HEADER-004
+    category: process
+    severity: blocker
+    rule: "Audience tier is declared and valid"
+    allowed_values: [internal, partner, commons, public]
+    passes_when: "audience is in allowed_values"
+
+  - id: R-LIFECYCLE-001
+    category: process
+    severity: blocker
+    rule: "Status transition log §6 is append-only and consistent with current status"
+    passes_when: "the most recent log row's `to` field equals the header status; no row has been edited (per git history)"
+    fails_when:  "header status disagrees with last log row, or rows have been retroactively edited"
+
+  - id: R-CLAIM-001
+    category: content
+    severity: blocker
+    rule: "§1 contains a decisive claim, not exploratory framing"
+    passes_when: "§1 is a single declarative statement asserting what should be done; can be a paragraph but must commit to a position"
+    fails_when:  "§1 uses exploratory hedges ('we could', 'might consider', 'is exploring', 'this RFC investigates')"
+    cite: "GRADUATION_RULES.md §Promotion criteria — Spec → RFC, item 1"
+
+  - id: R-EVIDENCE-001
+    category: content
+    severity: blocker
+    rule: "§2 declares at least one decisive evidence item"
+    passes_when: "the §2 sufficiency assertion explicitly identifies >=1 evidence row as decisive (load-bearing for ratification)"
+    fails_when:  "no evidence is marked decisive, or sufficiency assertion is missing"
+
+  - id: R-EVIDENCE-002
+    category: process
+    severity: warning
+    rule: "Each evidence row provides at minimum one resolvable reference (URL or KOI IRI)"
+    passes_when: "every row has a non-empty URL or KOI IRI column"
+    fails_when:  "any row has neither a URL nor an IRI"
+
+  - id: R-METHODOLOGY-001
+    category: content
+    severity: blocker
+    rule: "§3 cites at least one repo path (spec, simulation, or contract) that supports the claim"
+    passes_when: "at least one path under mechanisms/, simulations/, or contracts/ is cited and resolves"
+    fails_when:  "no repo path cited, or cited paths do not resolve in the current commit"
+
+  - id: R-LINEAGE-001
+    category: process
+    severity: warning
+    rule: "§4 declares at least inbound lineage (specs/RFCs this depends on)"
+    passes_when: "§4 has at least one inbound entry; can be 'none' if explicitly stated"
+    fails_when:  "§4 is empty or omitted"
+
+# ─────────────────────────────────────────────────────────────────
+# Gate-specific rules
+# ─────────────────────────────────────────────────────────────────
+
+gates:
+
+  spec-to-rfc:
+    description: "A spec graduates into RFC draft."
+    cite: "GRADUATION_RULES.md §Promotion criteria — Spec → RFC"
+    rules:
+      - id: R-G-S2R-001
+        category: process
+        severity: blocker
+        rule: "A human sponsor has volunteered (header §0 Sponsor is non-empty and human)"
+        delegates_to: [R-HEADER-002]
+
+      - id: R-G-S2R-002
+        category: content
+        severity: blocker
+        rule: "No live conflicting RFC exists on the same question"
+        passes_when: "no RFC in state in {draft, forum-posted, ratified} addresses the same decision"
+        fails_when:  "one or more conflicting RFCs exist; must be resolved/withdrawn first"
+        check_method: "scan rfcs/ for RFCs whose claim semantically overlaps; surface candidates for human disambiguation"
+
+      - id: R-G-S2R-003
+        category: content
+        severity: blocker
+        rule: "Reference accessibility gate is passable for declared audience tier"
+        passes_when: "every reference in §9 either resolves at the declared audience tier, OR has a noted elevation plan"
+        fails_when:  "any reference is workspace-local or otherwise inaccessible to declared audience without an elevation plan"
+        cite: "workspace CLAUDE.md — Reference Accessibility Gate"
+
+  rfc-to-forum-posted:
+    description: "Draft RFC moves to forum-posted state."
+    cite: "GRADUATION_RULES.md §RFC → forum-posted"
+    rules:
+      - id: R-G-FP-001
+        category: process
+        severity: blocker
+        rule: "Forum thread URL is present in §5"
+        passes_when: "§5 forum thread field is a resolvable URL on commonwealth.im (or equivalent forum)"
+
+      - id: R-G-FP-002
+        category: process
+        severity: blocker
+        rule: "Discussion deadline is set and >=7 days from forum-post date"
+        passes_when: "§5 deadline is a future date >=7 days after the forum-posted log entry"
+
+      - id: R-G-FP-003
+        category: content
+        severity: blocker
+        rule: "Forum post references this RFC by ID and KOI IRI"
+        passes_when: "fetched forum thread body contains the RFC ID and koi:rfc:RFC-XXXX"
+        check_method: "fetch forum URL and grep for RFC ID + KOI IRI"
+
+  rfc-to-ratified:
+    description: "Forum-posted RFC moves to ratified."
+    cite: "GRADUATION_RULES.md §RFC → ratified"
+    rules:
+      - id: R-G-RAT-001
+        category: process
+        severity: blocker
+        rule: "Discussion deadline has passed"
+        passes_when: "today >= §5 deadline"
+
+      - id: R-G-RAT-002
+        category: content
+        severity: blocker
+        rule: "Every key counter-position in §5 has been addressed"
+        passes_when: "each entry in §5 counter-positions has either: (a) been incorporated into claim/methodology with a §6 log entry, or (b) been explicitly noted as 'considered and rejected because <reason>'"
+        fails_when:  "any counter-position is unaddressed or noted as 'TODO'"
+
+      - id: R-G-RAT-003
+        category: content
+        severity: blocker
+        rule: "All §8 open questions are resolved or carried as known limitations"
+        passes_when: "every checkbox in §8 is either checked, or annotated 'carried as known limitation: <text>'"
+
+      - id: R-G-RAT-004
+        category: content
+        severity: blocker
+        rule: "Decisive evidence in §2 has not been invalidated during discussion"
+        passes_when: "no §6 log entry or §5 counter-position invalidates a §2 row marked decisive without a replacement"
+        check_method: "LLM judgment over discussion + evidence delta"
+
+      - id: R-G-RAT-005
+        category: process
+        severity: blocker
+        rule: "Ratifier is named and distinct from sponsor"
+        passes_when: "the §6 log row transitioning to ratified has a non-empty Approver field that is not the sponsor"
+        cite: "GRADUATION_RULES.md §RFC → ratified, item 5 — two-eyes principle"
+
+  rfc-to-enacted:
+    description: "Ratified RFC moves to enacted (on-chain proposal passed)."
+    cite: "GRADUATION_RULES.md §RFC → enacted"
+    rules:
+      - id: R-G-ENA-001
+        category: process
+        severity: blocker
+        rule: "§7 on-chain enactment is fully filled out"
+        required_fields: [action_type, target_chain, generated_proposal_artifact, voting_period, pre_flight_checks]
+        passes_when: "all required_fields are present and non-empty"
+
+      - id: R-G-ENA-002
+        category: process
+        severity: blocker
+        rule: "On-chain proposal has a passed result"
+        passes_when: "queried chain returns proposal status = PASSED for the proposal ID cited in §7"
+        check_method: "use ledger MCP get_governance_proposal with cited proposal ID"
+
+      - id: R-G-ENA-003
+        category: process
+        severity: blocker
+        rule: "Pre-flight checks listed in §7 all show passing in CI"
+        passes_when: "every pre-flight check resolves to a green CI run on the merge commit prior to proposal submission"
+
+      - id: R-G-ENA-004
+        category: process
+        severity: blocker
+        rule: "On-chain proposer is human"
+        passes_when: "the on-chain submission tx is signed by a human key (not an agent service key)"
+        cite: "GRADUATION_RULES.md §RFC → on-chain proposal, critical rule"
