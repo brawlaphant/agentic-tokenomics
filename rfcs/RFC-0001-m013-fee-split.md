@@ -1,8 +1,8 @@
-# RFC-0001 — Adopt M013 Fee Distribution Split 15/30/50/5
+# RFC-0001 — Propose M013 Fee Distribution Split 15/30/50/5
 
 ## 0. Header
 - **ID:** RFC-0001
-- **Title:** Adopt M013 Fee Distribution Split (burn / validator / community / agent pools)
+- **Title:** Propose M013 Fee Distribution Split (burn / validator / community / agent pools)
 - **Status:** draft
 - **Author(s):** Claude Code (AI agent, brawlaphant accountable)
 - **Sponsor:** <HUMAN SPONSOR REQUIRED — none assigned yet; submit via PR comment>
@@ -29,7 +29,7 @@ This distribution balances three strategic objectives: (1) **meaningful but not 
 
 **Sufficiency assertion:** Evidence E1 and E2 are **decisive**: the simulation validates that 15% burn produces ~220.42M REGEN equilibrium supply (below the proposed 221M hard cap) and that validator compensation at 30% reaches $343-480/validator/month at moderate ($24K/month) fee volumes. E3 and E4 are **supporting**: they document the prior governance deliberation and the mechanism's design range. E5 is **supporting**: it contextualizes the burn mechanism within the M012 hard-cap framework.
 
-The 15/30/50/5 split is directly derived from the Working Group's economic reboot analysis (E3). No simulation or empirical data contradicts adoption. The evidence suffices for community ratification.
+The 15/30/50/5 split is directly derived from the Working Group's economic reboot analysis (E3). No simulation or empirical data reviewed here contradicts the proposed values. Whether the evidence suffices is for the sponsor, the forum deliberation and the ratification steps in GRADUATION_RULES.md to decide.
 
 ## 3. Methodology
 
@@ -144,7 +144,7 @@ The three candidate models presented during Phase 2 governance:
 |-------|------|-----------|-----------|-------|-----------|
 | **Model A (original)** | 30% | 40% | 25% | 5% | Prioritizes validator compensation; strong deflation signal |
 | **Model B (alternative)** | 25-35% | 15-25% | 50-60% | 0% | Prioritizes community/ecosystem development; eliminates agent pool |
-| **RFC-0001 (adopted)** | **15%** | **30%** | **50%** | **5%** | Balances deflation + ecosystem + validator + AI infrastructure |
+| **RFC-0001 (proposed)** | **15%** | **30%** | **50%** | **5%** | Balances deflation + ecosystem + validator + AI infrastructure |
 
 **Why 15/30/50/5?**
 
@@ -174,7 +174,7 @@ From `simulations/cadcad/equilibrium_analysis.md` §1.3.1:
 - Validator compensation at 30% share: $343-480/validator/month (adequate with M015 supplements)
 - Community pool absorption (50%): $12,000/month at moderate volumes (sufficient for M015 initial deployment)
 
-All metrics are within acceptable ranges per the Working Group's prior analysis. No simulation outcome contradicts adoption.
+All metrics are within acceptable ranges per the Working Group's prior analysis. No simulation outcome reviewed here contradicts the proposed values.
 
 ---
 

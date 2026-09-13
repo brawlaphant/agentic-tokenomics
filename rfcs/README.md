@@ -28,10 +28,9 @@ The why and the full lifecycle are in [`GRADUATION_RULES.md`](./GRADUATION_RULES
 
 ## Index
 
-*Empty — this is the bootstrap commit. RFC-0001 will be the first concrete RFC; tracking begins here.*
-
 | ID | Title | Status | Sponsor | Last update |
 |---|---|---|---|---|
+| RFC-0001 | Propose M013 Fee Distribution Split 15/30/50/5 | draft | sponsor required | 2026-09-13 |
 
 ## Why this exists
 
